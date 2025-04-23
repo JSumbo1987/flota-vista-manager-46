@@ -10,6 +10,13 @@ import Dashboard from "./pages/Dashboard";
 import CertificadosList from "./pages/Certificados/CertificadosList";
 import AddCertificado from "./pages/Certificados/AddCertificado";
 import NotFound from "./pages/NotFound";
+import ViaturaList from "./pages/Viaturas/ViaturasList";
+import FuncionariosList from "./pages/Funcionarios/FuncionariosList";
+import AgendamentoList from "./pages/Agendamentos/AgendamentoList";
+import ServicosList from "./pages/Servicos/ServicosList";
+import ChecklistsList from "./pages/CheckList/CheckList";
+import LicencaTransporteList from "./pages/LicencasTransportes/LicencasTransporteList";
+import LicencaPublicidadeList from "./pages/LicencasPublicidades/LicencasPublicidadeList";
 
 const queryClient = new QueryClient();
 
@@ -64,10 +71,7 @@ const App = () => (
             path="/viaturas"
             element={
               <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Gestão de Viaturas</h2>
-                  <p>Página em implementação</p>
-                </div>
+                <ViaturaList />
               </MainLayout>
             }
           />
@@ -75,10 +79,7 @@ const App = () => (
             path="/funcionarios"
             element={
               <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Gestão de Funcionários</h2>
-                  <p>Página em implementação</p>
-                </div>
+                <FuncionariosList />
               </MainLayout>
             }
           />
@@ -86,10 +87,7 @@ const App = () => (
             path="/agendamentos"
             element={
               <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Agendamentos</h2>
-                  <p>Página em implementação</p>
-                </div>
+                <AgendamentoList />
               </MainLayout>
             }
           />
@@ -97,10 +95,7 @@ const App = () => (
             path="/servicos"
             element={
               <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Serviços</h2>
-                  <p>Página em implementação</p>
-                </div>
+                <ServicosList />
               </MainLayout>
             }
           />
@@ -108,10 +103,7 @@ const App = () => (
             path="/checklist"
             element={
               <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Checklists</h2>
-                  <p>Página em implementação</p>
-                </div>
+                <ChecklistsList />
               </MainLayout>
             }
           />
@@ -119,10 +111,7 @@ const App = () => (
             path="/licenca-transporte"
             element={
               <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Licenças de Transporte</h2>
-                  <p>Página em implementação</p>
-                </div>
+                <LicencaTransporteList />
               </MainLayout>
             }
           />
@@ -130,10 +119,7 @@ const App = () => (
             path="/licenca-publicidade"
             element={
               <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Licenças de Publicidade</h2>
-                  <p>Página em implementação</p>
-                </div>
+                <LicencaPublicidadeList />
               </MainLayout>
             }
           />
