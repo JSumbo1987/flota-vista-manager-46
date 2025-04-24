@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,81 +13,143 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
-// Mock data
-const funcoes = [
-  { id: "MOTORISTA", nome: "Motorista" },
-  { id: "AUXILIAR", nome: "Auxiliar" },
-];
+interface FuncaoTipo {
+  funcaoid: string;
+}
 
-const categorias = [
-  { id: "B", nome: "Categoria B" },
-  { id: "D", nome: "Categoria D" },
-];
+interface Categoria {
+  categoriaid: string;
+}
 
-const nacionalidades = [
-  { id: "AO", nome: "Angolana" },
-  { id: "PT", nome: "Portuguesa" },
-];
+interface Nacionalidade {
+  nacionalidadeid: string;
+}
+
+const initialState = {
+  funcionarioNome: "",
+  numeroBI: "",
+  nacionalidade: "",
+  genero: "",
+  provincia: "",
+  funcionarioEmail: "",
+  funcionarioTelefone: "",
+  CartaDeConducaoNr: "",
+  DataEmissao: "",
+  DataValidade: "",
+  categoriaId: "",
+  funcaoTipoId: "",
+  estado: "Activo",
+};
 
 const AddFuncionario = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [form, setForm] = useState({
-    funcionarioNome: "",
-    numeroBI: "",
-    nacionalidade: "",
-    genero: "",
-    provincia: "",
-    funcionarioEmail: "",
-    funcionarioTelefone: "",
-    CartaDeConducaoNr: "",
-    DataEmissao: "",
-    DataValidade: "",
-    categoriaId: "",
-    funcaoTipoId: "",
-    estado: "Activo",
+  const [funcoes, setFuncoes] = useState<FuncaoTipo[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [nacionalidades, setNacionalidades] = useState<Nacionalidade[]>([]);
+  const [form, setForm] = useState(initialState);
+  const [files, setFiles] = useState({
+    copiabi: null as File | null,
+    copiacartaconducao: null as File | null,
+    copialicencaconducao: null as File | null,
+    fotografia: null as File | null,
   });
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  useEffect(() => {
+    async function fetchData() {
+      const { data: funcoesData } = await supabase
+        .from("tblfuncaotipo")
+        .select("funcaoid");
+      setFuncoes(funcoesData || []);
+
+      const { data: categoriasData } = await supabase
+        .from("tblcategorias")
+        .select("categoriaid");
+      setCategorias(categoriasData || []);
+
+      const { data: nacionalidadesData } = await supabase
+        .from("tblnacionalidades")
+        .select("nacionalidadeid");
+      setNacionalidades(nacionalidadesData || []);
+    }
+    fetchData();
+  }, []);
+
+  function handleChange(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-  };
+  }
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const { name, files: fileList } = e.target;
+    if (!fileList || fileList.length === 0) return;
+    const file = fileList[0];
+    setFiles((prev) => ({ ...prev, [name]: file }));
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!form.funcionarioNome || !form.numeroBI || !form.nacionalidade || !form.funcaoTipoId) {
-      toast({
-        title: "Campos obrigatórios faltando",
-        description: "Preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
+
     try {
-      // TODO: Enviar dados para Supabase
-      setTimeout(() => {
-        setIsSubmitting(false);
-        toast({
-          title: "Funcionário adicionado",
-          description: "O funcionário foi registrado com sucesso.",
-        });
-        navigate("/funcionarios");
-      }, 1500);
-    } catch (error) {
-      setIsSubmitting(false);
-      toast({
-        title: "Erro",
-        description: "Erro ao adicionar funcionário.",
-        variant: "destructive",
+      const uploadFile = async (file: File, pathPrefix: string) => {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${pathPrefix}-${Date.now()}.${fileExt}`;
+        const filePath = `${pathPrefix}/${fileName}`;
+
+        const { error } = await supabase.storage
+          .from("funcionarios")
+          .upload(filePath, file, { upsert: true });
+
+        if (error) throw error;
+        return filePath;
+      };
+
+      const copiaBIUrl = files.copiabi ? await uploadFile(files.copiabi, "copiaBI") : null;
+      const copiaCartaConducaoUrl = files.copiacartaconducao ? await uploadFile(files.copiacartaconducao, "cartaConducao") : null;
+      const copiaLicencaConducaoUrl = files.copialicencaconducao ? await uploadFile(files.copialicencaconducao, "licencaConducao") : null;
+      const fotografiaUrl = files.fotografia ? await uploadFile(files.fotografia, "fotografia") : null;
+
+      const { error } = await supabase.from("tblfuncionarios").insert({
+        funcionarionome: form.funcionarioNome,
+        numerobi: form.numeroBI,
+        nacionalidade: form.nacionalidade,
+        genero: form.genero,
+        provincia: form.provincia,
+        funcionarioemail: form.funcionarioEmail,
+        funcionariotelefone: form.funcionarioTelefone,
+        cartadeconducaonr: form.CartaDeConducaoNr,
+        dataemissao: form.DataEmissao,
+        datavalidade: form.DataValidade,
+        funcaotipoid: form.funcaoTipoId,
+        categoriaid: form.categoriaId,
+        copiabi: copiaBIUrl,
+        copiacartaconducao: copiaCartaConducaoUrl,
+        copialicencaconducao: copiaLicencaConducaoUrl,
+        fotografia: fotografiaUrl,
+        estado: form.estado,
       });
+
+      if (error) throw error;
+
+      toast({ title: "Funcionário salvo com sucesso!" });
+      setForm(initialState);
+      setFiles({
+        copiabi: null,
+        copiacartaconducao: null,
+        copialicencaconducao: null,
+        fotografia: null,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Erro ao salvar funcionário", description: String(error), variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -105,80 +168,105 @@ const AddFuncionario = () => {
       <Card>
         <form onSubmit={handleSubmit}>
           <CardHeader>
-            <CardTitle>Dados do Funcionário</CardTitle>
-            <CardDescription>Preencha os campos abaixo</CardDescription>
+            <CardTitle>Informações do Funcionário</CardTitle>
+            <CardDescription>Organizado por abas para melhor visualização</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+          <Tabs defaultValue="dados" className="px-6">
+            <TabsList className="mb-4">
+              <TabsTrigger value="dados">Dados Pessoais</TabsTrigger>
+              <TabsTrigger value="documentos">Documentos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dados" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <Label>Nome*</Label>
                 <Input name="funcionarioNome" value={form.funcionarioNome} onChange={handleChange} required />
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Número do BI*</Label>
                 <Input name="numeroBI" value={form.numeroBI} onChange={handleChange} required />
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Telefone*</Label>
                 <Input name="funcionarioTelefone" value={form.funcionarioTelefone} onChange={handleChange} required />
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Email</Label>
-                <Input name="funcionarioEmail" value={form.funcionarioEmail} onChange={handleChange} />
+                <Input name="funcionarioEmail" type="email" value={form.funcionarioEmail} onChange={handleChange} />
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Gênero*</Label>
-                <select name="genero" value={form.genero} onChange={handleChange} className="w-full p-2 border rounded">
+                <select name="genero" value={form.genero} onChange={handleChange} className="w-full p-2 border rounded" required>
                   <option value="">Selecione</option>
                   <option value="Masculino">Masculino</option>
                   <option value="Feminino">Feminino</option>
                 </select>
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Província*</Label>
                 <Input name="provincia" value={form.provincia} onChange={handleChange} required />
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Nacionalidade*</Label>
-                <select name="nacionalidade" value={form.nacionalidade} onChange={handleChange} className="w-full p-2 border rounded">
+                <select name="nacionalidade" value={form.nacionalidade} onChange={handleChange} className="w-full p-2 border rounded" required>
                   <option value="">Selecione</option>
                   {nacionalidades.map((n) => (
-                    <option key={n.id} value={n.id}>{n.nome}</option>
+                    <option key={n.nacionalidadeid} value={n.nacionalidadeid}>{n.nacionalidadeid}</option>
                   ))}
                 </select>
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Função*</Label>
-                <select name="funcaoTipoId" value={form.funcaoTipoId} onChange={handleChange} className="w-full p-2 border rounded">
+                <select name="funcaoTipoId" value={form.funcaoTipoId} onChange={handleChange} className="w-full p-2 border rounded" required>
                   <option value="">Selecione</option>
                   {funcoes.map((f) => (
-                    <option key={f.id} value={f.id}>{f.nome}</option>
+                    <option key={f.funcaoid} value={f.funcaoid}>{f.funcaoid}</option>
                   ))}
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label>Categoria da Carta</Label>
+              <div>
+                <Label>Categoria*</Label>
                 <select name="categoriaId" value={form.categoriaId} onChange={handleChange} className="w-full p-2 border rounded">
                   <option value="">Selecione</option>
                   {categorias.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
+                    <option key={c.categoriaid} value={c.categoriaid}>{c.categoriaid}</option>
                   ))}
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label>Número da Carta</Label>
+              <div>
+                <Label>Número da Carta de Condução</Label>
                 <Input name="CartaDeConducaoNr" value={form.CartaDeConducaoNr} onChange={handleChange} />
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Data de Emissão</Label>
-                <Input type="date" name="DataEmissao" value={form.DataEmissao} onChange={handleChange} />
+                <Input name="DataEmissao" type="date" value={form.DataEmissao} onChange={handleChange} />
               </div>
-              <div className="space-y-2">
+              <div>
                 <Label>Data de Validade</Label>
-                <Input type="date" name="DataValidade" value={form.DataValidade} onChange={handleChange} />
+                <Input name="DataValidade" type="date" value={form.DataValidade} onChange={handleChange} />
               </div>
-            </div>
-          </CardContent>
+            </TabsContent>
+
+            <TabsContent value="documentos" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Cópia do BI</Label>
+                <Input type="file" name="copiabi" onChange={handleFileChange} />
+              </div>
+              <div>
+                <Label>Carta de Condução</Label>
+                <Input type="file" name="copiacartaconducao" onChange={handleFileChange} />
+              </div>
+              <div>
+                <Label>Licença de Condução</Label>
+                <Input type="file" name="copialicencaconducao" onChange={handleFileChange} />
+              </div>
+              <div>
+                <Label>Fotografia</Label>
+                <Input type="file" name="fotografia" onChange={handleFileChange} />
+              </div>
+            </TabsContent>
+          </Tabs>
+          <br/>
           <CardFooter className="flex justify-between">
             <Button type="button" variant="outline" onClick={() => navigate("/funcionarios")}>
               Cancelar
@@ -194,3 +282,4 @@ const AddFuncionario = () => {
 };
 
 export default AddFuncionario;
+

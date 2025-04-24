@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { EyeIcon, Edit, Trash, Plus, ChevronDown, User2 } from "lucide-react";
 import {
@@ -33,51 +33,22 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock de Funcionários
-const funcionariosMock = [
-  {
-    funcionarioId: 1,
-    funcionarioNome: "Carlos Manuel",
-    numeroBI: "12345678LA045",
-    nacionalidade: "Angolana",
-    genero: "Masculino",
-    provincia: "Luanda",
-    funcionarioEmail: "carlos.manuel@email.com",
-    funcionarioTelefone: "+244923456789",
-    CartaDeConducaoNr: "CD123456",
-    DataEmissao: "2023-01-01",
-    DataValidade: "2025-01-01",
-    estado: "activo",
-  },
-  {
-    funcionarioId: 2,
-    funcionarioNome: "Ana Silva",
-    numeroBI: "98765432LB032",
-    nacionalidade: "Angolana",
-    genero: "Feminino",
-    provincia: "Huíla",
-    funcionarioEmail: "ana.silva@email.com",
-    funcionarioTelefone: "+244912345678",
-    CartaDeConducaoNr: "CD654321",
-    DataEmissao: "2022-06-01",
-    DataValidade: "2023-06-01",
-    estado: "inactivo",
-  },
-];
+import { supabase } from "@/lib/supabaseClient";
 
 interface Funcionario {
-  funcionarioId: number;
-  funcionarioNome: string;
-  numeroBI: string;
+  funcionarioid: number;
+  funcionarionome: string;
+  numerobi: string;
   nacionalidade: string;
   genero: string;
   provincia: string;
-  funcionarioEmail?: string;
-  funcionarioTelefone: string;
-  CartaDeConducaoNr?: string;
-  DataEmissao?: string;
-  DataValidade?: string;
+  funcionarioemail?: string;
+  funcionariotelefone: string;
+  cartadeconducaonr?: string;
+  dataemissao?: string;
+  datavalidade?: string;
+  funcaotipoid?: string;
+  categoriaid?: string;
   estado: string;
 }
 
@@ -89,8 +60,20 @@ interface FuncionarioDetailsProps {
 const FuncionarioDetails = ({ funcionario, onClose }: FuncionarioDetailsProps) => {
   if (!funcionario) return null;
 
+  const {
+    funcionarionome,
+    numerobi,
+    funcionariotelefone,
+    funcionarioemail,
+    nacionalidade,
+    provincia,
+    cartadeconducaonr,
+    datavalidade,
+    estado,
+  } = funcionario;
+
   const getStatusClass = (estado: string) => {
-    switch (estado) {
+    switch (estado.toLowerCase()) {
       case "activo":
         return "bg-green-100 text-green-800 border-green-200";
       case "inactivo":
@@ -112,41 +95,41 @@ const FuncionarioDetails = ({ funcionario, onClose }: FuncionarioDetailsProps) =
             <User2 className="w-6 h-6 text-primary" />
           </div>
         </div>
-        <div className={`p-2 rounded text-center ${getStatusClass(funcionario.estado)}`}>
-          <p className="text-sm font-medium capitalize">{funcionario.estado}</p>
+        <div className={`p-2 rounded text-center ${getStatusClass(estado)}`}>
+          <p className="text-sm font-medium capitalize">{estado}</p>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">Nome</p>
-            <p>{funcionario.funcionarioNome}</p>
+            <p>{funcionarionome}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Nº BI</p>
-            <p>{funcionario.numeroBI}</p>
+            <p>{numerobi}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Telefone</p>
-            <p>{funcionario.funcionarioTelefone}</p>
+            <p>{funcionariotelefone}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Email</p>
-            <p>{funcionario.funcionarioEmail || "N/A"}</p>
+            <p>{funcionarioemail || "N/A"}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Nacionalidade</p>
-            <p>{funcionario.nacionalidade}</p>
+            <p>{nacionalidade}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Província</p>
-            <p>{funcionario.provincia}</p>
+            <p>{provincia}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Carta de Condução</p>
-            <p>{funcionario.CartaDeConducaoNr || "N/A"}</p>
+            <p>{cartadeconducaonr || "N/A"}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Validade</p>
-            <p>{funcionario.DataValidade || "N/A"}</p>
+            <p>{datavalidade || "N/A"}</p>
           </div>
         </div>
       </div>
@@ -154,7 +137,9 @@ const FuncionarioDetails = ({ funcionario, onClose }: FuncionarioDetailsProps) =
         <Button variant="outline" onClick={onClose}>
           Fechar
         </Button>
-        <Button onClick={() => {}}>Editar</Button>
+        <Button onClick={() => { /* aqui você pode adicionar a lógica de editar */ }}>
+          Editar
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -164,19 +149,59 @@ const FuncionariosList = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedFuncionario, setSelectedFuncionario] = useState<Funcionario | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [funcionarioToDelete, setFuncionarioToDelete] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  useEffect(() => {
+    const fetchFuncionarios = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("tblfuncionarios")
+        .select("*");
+      if (error) {
+        toast({
+          title: "Erro ao carregar registros de funcionários",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setFuncionarios(data || []);
+      }
+      setLoading(false);
+    };
+
+    fetchFuncionarios();
+  }, [toast]);
 
   const handleDelete = (id: number) => {
     setFuncionarioToDelete(id);
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
-    // TODO: Integração com Supabase
-    toast({ title: "Funcionário excluído com sucesso." });
+  const confirmDelete = async () => {
+    if (!funcionarioToDelete) return;
+
+    const { error } = await supabase
+      .from("tblfuncionarios")
+      .delete()
+      .eq("funcionarioid", funcionarioToDelete);
+
+    if (error) {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Funcionário excluído com sucesso." });
+      setFuncionarios((prev) =>
+        prev.filter((f) => f.funcionarioid !== funcionarioToDelete)
+      );
+    }
     setShowDeleteDialog(false);
   };
 
@@ -187,17 +212,30 @@ const FuncionariosList = () => {
 
   const getStatusBadge = (estado: string) => {
     const base = "text-xs px-2 py-1 rounded";
-    if (estado === "activo") return <Badge variant="outline" className={`${base} bg-green-100 text-green-800`}>Ativo</Badge>;
-    if (estado === "inactivo") return <Badge variant="outline" className={`${base} bg-red-100 text-red-800`}>Inativo</Badge>;
-    return <Badge variant="outline">{estado}</Badge>;
+    switch (estado.toLowerCase()) {
+      case "activo":
+        return (
+          <Badge variant="outline" className={`${base} bg-green-100 text-green-800`}>
+            Activo
+          </Badge>
+        );
+      case "inactivo":
+        return (
+          <Badge variant="outline" className={`${base} bg-red-100 text-red-800`}>
+            Inactivo
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">{estado}</Badge>;
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Funcionários</h2>
-          <p className="text-muted-foreground">Gestão de funcionários da organização</p>
+          <h1 className="text-2xl font-bold">Funcionários</h1>
+          <p className="text-muted-foreground">Lista de funcionários cadastradas</p>
         </div>
         <Button onClick={() => navigate("/funcionarios/add")}>
           <Plus className="mr-2 h-4 w-4" /> Novo Funcionário
@@ -210,73 +248,99 @@ const FuncionariosList = () => {
           <CardDescription>Todos os funcionários cadastrados</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>BI</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {funcionariosMock.map((f) => (
-                <TableRow key={f.funcionarioId}>
-                  <TableCell>{f.funcionarioNome}</TableCell>
-                  <TableCell>{f.funcionarioTelefone}</TableCell>
-                  <TableCell>{f.numeroBI}</TableCell>
-                  <TableCell>{getStatusBadge(f.estado)}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => viewDetails(f)}>
-                          <EyeIcon className="mr-2 h-4 w-4" />
-                          Ver detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/funcionarios/edit/${f.funcionarioId}`)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(f.funcionarioId)}
-                          className="text-destructive"
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {loading ? (
+            <p>Carregando funcionários...</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Nacionalidade</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>Província</TableHead>
+                  <TableHead>Função</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {funcionarios.map((f) => (
+                  <TableRow key={f.funcionarioid}>
+                    <TableCell>{f.funcionarionome}</TableCell>
+                    <TableCell>{f.nacionalidade}</TableCell>
+                    <TableCell>{f.funcionariotelefone}</TableCell>
+                    <TableCell>{f.provincia}</TableCell>
+                    <TableCell>{f.funcaotipoid || "-"}</TableCell>
+                    <TableCell>{f.categoriaid || "-"}</TableCell>
+                    <TableCell>{getStatusBadge(f.estado)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <ChevronDown className="h-4 w-4" />
+                            <span className="sr-only">Abrir menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[160px]">
+                          <DropdownMenuItem onClick={() => viewDetails(f)}>
+                            <EyeIcon className="mr-2 h-4 w-4" />
+                            Ver detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/funcionarios/edit/${f.funcionarioid}`)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(f.funcionarioid)}
+                           className="text-destructive focus:text-destructive"
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {funcionarios.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center">
+                      Nenhum funcionário encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
+      {/* Dialog Detalhes */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <FuncionarioDetails
+          funcionario={selectedFuncionario}
+          onClose={() => setShowDetailsDialog(false)}
+        />
+      </Dialog>
+
+      {/* Dialog Confirmação de Exclusão */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Excluir Funcionário</DialogTitle>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir este funcionário? Essa ação é irreversível.
+              Tem certeza que deseja excluir este funcionário? Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Excluir</Button>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Excluir
+            </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <FuncionarioDetails funcionario={selectedFuncionario} onClose={() => setShowDetailsDialog(false)} />
       </Dialog>
     </div>
   );

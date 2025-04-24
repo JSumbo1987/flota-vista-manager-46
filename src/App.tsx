@@ -19,6 +19,8 @@ import LicencaTransporteList from "./pages/LicencasTransportes/LicencasTransport
 import LicencaPublicidadeList from "./pages/LicencasPublicidades/LicencasPublicidadeList";
 import AddViatura from "./pages/Viaturas/AddViaturas";
 import EditViatura from "./pages/Viaturas/EditViatura";
+import AddFuncionario from "./pages/Funcionarios/AddFuncionario";
+import EditarFuncionario from "./pages/Funcionarios/EditarFuncionario";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +100,22 @@ const App = () => (
             element={
               <MainLayout>
                 <FuncionariosList />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/funcionarios/add"
+            element={
+              <MainLayout>
+                <AddFuncionario />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/funcionarios/edit/:funcionarioId"
+            element={
+              <MainLayout>
+                <EditarFuncionario />
               </MainLayout>
             }
           />
