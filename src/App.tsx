@@ -17,6 +17,8 @@ import ServicosList from "./pages/Servicos/ServicosList";
 import ChecklistsList from "./pages/CheckList/CheckList";
 import LicencaTransporteList from "./pages/LicencasTransportes/LicencasTransporteList";
 import LicencaPublicidadeList from "./pages/LicencasPublicidades/LicencasPublicidadeList";
+import AddViatura from "./pages/Viaturas/AddViaturas";
+import EditViatura from "./pages/Viaturas/EditViatura";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +74,22 @@ const App = () => (
             element={
               <MainLayout>
                 <ViaturaList />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/viaturas/add"
+            element={
+              <MainLayout>
+                <AddViatura />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/viaturas/edit/:viaturaId"
+            element={
+              <MainLayout>
+                <EditViatura />
               </MainLayout>
             }
           />
