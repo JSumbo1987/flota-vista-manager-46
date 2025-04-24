@@ -1,9 +1,8 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard";
@@ -21,6 +20,7 @@ import AddViatura from "./pages/Viaturas/AddViaturas";
 import EditViatura from "./pages/Viaturas/EditViatura";
 import AddFuncionario from "./pages/Funcionarios/AddFuncionario";
 import EditarFuncionario from "./pages/Funcionarios/EditarFuncionario";
+import { AuthProvider } from "./pages/Auth/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -29,187 +29,194 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Rota de autenticação */}
-          <Route path="/login" element={<Login />} />
-          
-          {/* Rotas protegidas */}
-          <Route
-            path="/"
-            element={
-              <MainLayout>
-                <Dashboard />
-              </MainLayout>
-            }
-          />
-          
-          {/* Certificados */}
-          <Route
-            path="/certificados"
-            element={
-              <MainLayout>
-                <CertificadosList />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/certificados/add"
-            element={
-              <MainLayout>
-                <AddCertificado />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/certificados/edit/:id"
-            element={
-              <MainLayout>
-                <AddCertificado />
-              </MainLayout>
-            }
-          />
-          
-          {/* Rotas de placeholder para as próximas implementações */}
-          <Route
-            path="/viaturas"
-            element={
-              <MainLayout>
-                <ViaturaList />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/viaturas/add"
-            element={
-              <MainLayout>
-                <AddViatura />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/viaturas/edit/:viaturaId"
-            element={
-              <MainLayout>
-                <EditViatura />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/funcionarios"
-            element={
-              <MainLayout>
-                <FuncionariosList />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/funcionarios/add"
-            element={
-              <MainLayout>
-                <AddFuncionario />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/funcionarios/edit/:funcionarioId"
-            element={
-              <MainLayout>
-                <EditarFuncionario />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/agendamentos"
-            element={
-              <MainLayout>
-                <AgendamentoList />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/servicos"
-            element={
-              <MainLayout>
-                <ServicosList />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/checklist"
-            element={
-              <MainLayout>
-                <ChecklistsList />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/licenca-transporte"
-            element={
-              <MainLayout>
-                <LicencaTransporteList />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/licenca-publicidade"
-            element={
-              <MainLayout>
-                <LicencaPublicidadeList />
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/usuarios"
-            element={
-              <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Gestão de Usuários</h2>
-                  <p>Página em implementação</p>
-                </div>
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/notificacoes"
-            element={
-              <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Notificações</h2>
-                  <p>Página em implementação</p>
-                </div>
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/configuracoes"
-            element={
-              <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Configurações</h2>
-                  <p>Página em implementação</p>
-                </div>
-              </MainLayout>
-            }
-          />
-          <Route
-            path="/perfil"
-            element={
-              <MainLayout>
-                <div className="p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Meu Perfil</h2>
-                  <p>Página em implementação</p>
-                </div>
-              </MainLayout>
-            }
-          />
-          
-          {/* Rota 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+        <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            {/* Rota de autenticação */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Rotas protegidas */}
+            <Route
+              path="/"
+              element={
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
+              }
+            />
+
+            {/* Certificados */}
+            <Route
+              path="/certificados"
+              element={
+                <MainLayout>
+                  <CertificadosList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/certificados/add"
+              element={
+                <MainLayout>
+                  <AddCertificado />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/certificados/edit/:id"
+              element={
+                <MainLayout>
+                  <AddCertificado />
+                </MainLayout>
+              }
+            />
+
+            {/* Viaturas */}
+            <Route
+              path="/viaturas"
+              element={
+                <MainLayout>
+                  <ViaturaList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/viaturas/add"
+              element={
+                <MainLayout>
+                  <AddViatura />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/viaturas/edit/:viaturaId"
+              element={
+                <MainLayout>
+                  <EditViatura />
+                </MainLayout>
+              }
+            />
+
+            {/* Funcionários */}
+            <Route
+              path="/funcionarios"
+              element={
+                <MainLayout>
+                  <FuncionariosList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/funcionarios/add"
+              element={
+                <MainLayout>
+                  <AddFuncionario />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/funcionarios/edit/:funcionarioId"
+              element={
+                <MainLayout>
+                  <EditarFuncionario />
+                </MainLayout>
+              }
+            />
+
+            {/* Outras rotas */}
+            <Route
+              path="/agendamentos"
+              element={
+                <MainLayout>
+                  <AgendamentoList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/servicos"
+              element={
+                <MainLayout>
+                  <ServicosList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/checklist"
+              element={
+                <MainLayout>
+                  <ChecklistsList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/licenca-transporte"
+              element={
+                <MainLayout>
+                  <LicencaTransporteList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/licenca-publicidade"
+              element={
+                <MainLayout>
+                  <LicencaPublicidadeList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/usuarios"
+              element={
+                <MainLayout>
+                  <div className="p-8 text-center">
+                    <h2 className="text-2xl font-bold mb-4">Gestão de Usuários</h2>
+                    <p>Página em implementação</p>
+                  </div>
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/notificacoes"
+              element={
+                <MainLayout>
+                  <div className="p-8 text-center">
+                    <h2 className="text-2xl font-bold mb-4">Notificações</h2>
+                    <p>Página em implementação</p>
+                  </div>
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/configuracoes"
+              element={
+                <MainLayout>
+                  <div className="p-8 text-center">
+                    <h2 className="text-2xl font-bold mb-4">Configurações</h2>
+                    <p>Página em implementação</p>
+                  </div>
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/perfil"
+              element={
+                <MainLayout>
+                  <div className="p-8 text-center">
+                    <h2 className="text-2xl font-bold mb-4">Meu Perfil</h2>
+                    <p>Página em implementação</p>
+                  </div>
+                </MainLayout>
+              }
+            />
+
+            {/* Rota 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          </AuthProvider>
+        </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
 
 export default App;
+

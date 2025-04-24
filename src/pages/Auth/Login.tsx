@@ -1,20 +1,14 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Car, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient";
+import bcrypt from "bcryptjs"; // Instalar com: npm i bcryptjs
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,7 +21,7 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Erro de validação",
@@ -36,28 +30,52 @@ const Login = () => {
       });
       return;
     }
-    
+
     setIsLoading(true);
-    
-    try {
-      // Simulando login para essa versão inicial
-      // TODO: Implementar integração real com Supabase
-      setTimeout(() => {
-        setIsLoading(false);
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao sistema Flota Vista.",
-        });
-        navigate("/");
-      }, 1500);
-    } catch (error) {
-      setIsLoading(false);
+
+    const { data: user, error } = await supabase
+      .from("tblusuarios")
+      .select("userid, useremail, userpassword, tblusuariofuncionario(funcionarioid), tblpermissoes(*)")
+      .eq("useremail", email)
+      .single();
+
+    if (error || !user) {
       toast({
-        title: "Erro de autenticação",
-        description: "Credenciais inválidas. Por favor, tente novamente.",
+        title: "Usuário não encontrado",
+        description: "Credenciais inválidas. Verifique o e-mail.",
         variant: "destructive",
       });
+      setIsLoading(false);
+      return;
     }
+
+    const senhaCorreta = await bcrypt.compare(password, user.userpassword);
+
+    if (!senhaCorreta) {
+      toast({
+        title: "Senha incorreta",
+        description: "Por favor, tente novamente.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    // Aqui você pode armazenar os dados do usuário em um context ou localStorage
+    localStorage.setItem("usuario", JSON.stringify({
+      id: user.userid,
+      email: user.useremail,
+      funcionarioId: user.tblusuariofuncionario?.funcionarioid,
+      permissoes: user.tblpermissoes || [],
+    }));
+
+    toast({
+      title: "Login realizado com sucesso!",
+      description: "Bem-vindo ao sistema Flota Vista.",
+    });
+
+    navigate("/");
+    setIsLoading(false);
   };
 
   return (
@@ -106,11 +124,7 @@ const Login = () => {
                     className="absolute right-1 top-1 h-8 w-8"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
@@ -119,7 +133,7 @@ const Login = () => {
                   <Checkbox
                     id="remember"
                     checked={rememberMe}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       setRememberMe(checked as boolean)
                     }
                   />
@@ -149,3 +163,4 @@ const Login = () => {
 };
 
 export default Login;
+
