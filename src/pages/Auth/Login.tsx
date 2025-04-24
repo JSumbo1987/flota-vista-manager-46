@@ -35,20 +35,20 @@ const Login = () => {
 
     const { data: user, error } = await supabase
       .from("tblusuarios")
-      .select("userid, useremail, userpassword, tblusuariofuncionario(funcionarioid), tblpermissoes(*)")
+      .select("userid, useremail, usernome, userpassword, tblusuariofuncionario(funcionarioid), tblpermissoes(*)")
       .eq("useremail", email)
       .single();
 
-    if (error || !user) {
-      toast({
-        title: "Usuário não encontrado",
-        description: "Credenciais inválidas. Verifique o e-mail.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-
+      if (error || !user) {
+        toast({
+          title: "Usuário não encontrado",
+          description: "Credenciais inválidas. Verifique o e-mail.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
     const senhaCorreta = await bcrypt.compare(password, user.userpassword);
 
     if (!senhaCorreta) {
@@ -63,8 +63,9 @@ const Login = () => {
 
     // Aqui você pode armazenar os dados do usuário em um context ou localStorage
     localStorage.setItem("usuario", JSON.stringify({
-      id: user.userid,
-      email: user.useremail,
+      userid: user.userid,
+      useremail: user.useremail,
+      usernome: user.usernome,
       funcionarioId: user.tblusuariofuncionario?.funcionarioid,
       permissoes: user.tblpermissoes || [],
     }));

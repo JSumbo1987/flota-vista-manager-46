@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,8 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
-const AddServico = () => {
+const EditServico = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,7 +41,7 @@ const AddServico = () => {
   const [categoriaId, setCategoriaId] = useState("");
   const [tipoId, setTipoId] = useState("");
   const [prestadorId, setPrestadorId] = useState("");
-  const [dataServico, setDataServico] = useState<Date | undefined>(new Date());
+  const [dataServico, setDataServico] = useState<Date | undefined>(undefined);
   const [custo, setCusto] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [prestadores, setPrestadores] = useState<any[]>([]);
@@ -64,6 +65,28 @@ const AddServico = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const fetchServico = async () => {
+      const { data, error } = await supabase.from("tblservicos").select("*").eq("id", id).single();
+      if (data) {
+        setViaturaId(String(data.viaturaid));
+        setCategoriaId(String(data.categoriaid));
+        setTipoId(String(data.tipoid));
+        setPrestadorId(String(data.prestadorid));
+        setDataServico(data.dataservico ? new Date(data.dataservico) : undefined);
+        setCusto(String(data.custo));
+        setObservacoes(data.observacoes);
+      } else {
+        toast({
+          title: "Erro ao carregar serviço",
+          description: error?.message || "Erro ao buscar os dados do serviço.",
+          variant: "destructive",
+        });
+      }
+    };
+    if (id) fetchServico();
+  }, [id, toast]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -78,30 +101,28 @@ const AddServico = () => {
 
     setIsSubmitting(true);
 
-    const { error } = await supabase.from("tblservicos").insert([
-      {
-        viaturaid: viaturaId,
-        categoriaid: categoriaId,
-        tipoid: tipoId,
-        prestadorid: prestadorId || null,
-        dataservico: dataServico?.toISOString(),
-        custo: parseFloat(custo),
-        observacoes: observacoes,
-      },
-    ]);
+    const { error } = await supabase.from("tblservicos").update({
+      viaturaid: viaturaId,
+      categoriaid: categoriaId,
+      tipoid: tipoId,
+      prestadorid: prestadorId || null,
+      dataservico: dataServico?.toISOString(),
+      custo: parseFloat(custo),
+      observacoes: observacoes,
+    }).eq("id", id);
 
     setIsSubmitting(false);
 
     if (error) {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao registrar o serviço.",
+        description: error.message || "Erro ao atualizar o serviço.",
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Serviço registrado",
-        description: "O serviço foi registrado com sucesso.",
+        title: "Serviço atualizado",
+        description: "O serviço foi atualizado com sucesso.",
       });
       navigate("/servicos");
     }
@@ -114,8 +135,8 @@ const AddServico = () => {
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-3xl font-bold">Adicionar Serviço</h2>
-          <p className="text-muted-foreground">Registre um novo serviço de assistência à viatura</p>
+          <h2 className="text-3xl font-bold">Editar Serviço</h2>
+          <p className="text-muted-foreground">Altere os dados do serviço registrado</p>
         </div>
       </div>
 
@@ -123,7 +144,7 @@ const AddServico = () => {
         <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle>Dados do Serviço</CardTitle>
-            <CardDescription>Preencha os campos abaixo para registrar o serviço</CardDescription>
+            <CardDescription>Edite os campos abaixo para atualizar o serviço</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -191,7 +212,6 @@ const AddServico = () => {
                 </Select>
               </div>
 
-
               <div className="space-y-2">
                 <Label>Data do Serviço*</Label>
                 <Popover>
@@ -241,12 +261,8 @@ const AddServico = () => {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button type="button" variant="outline" onClick={() => navigate("/servicos")}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar Serviço"}
-            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate("/servicos")}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Salvando..." : "Salvar Alterações"}</Button>
           </CardFooter>
         </form>
       </Card>
@@ -254,4 +270,4 @@ const AddServico = () => {
   );
 };
 
-export default AddServico;
+export default EditServico;

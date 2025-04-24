@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -30,7 +30,8 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
-const AddAgendamento = () => {
+const EditAgendamento = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +39,7 @@ const AddAgendamento = () => {
   const [userId, setUserId] = useState("");
   const [viaturaId, setViaturaId] = useState("");
   const [tipoId, setTipoId] = useState("");
-  const [dataAgendada, setDataAgendada] = useState<Date | undefined>(new Date());
+  const [dataAgendada, setDataAgendada] = useState<Date | undefined>();
   const [status, setStatus] = useState("Pendente");
 
   const [usuarios, setUsuarios] = useState([]);
@@ -58,12 +59,37 @@ const AddAgendamento = () => {
       if (tipos) setTiposAssistencia(tipos);
     };
 
+    const fetchAgendamento = async () => {
+      const { data, error } = await supabase
+        .from("tblagendamentoservico")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error || !data) {
+        toast({
+          title: "Erro",
+          description: "Agendamento não encontrado.",
+          variant: "destructive",
+        });
+        navigate("/agendamentos");
+        return;
+      }
+
+      setUserId(data.userid);
+      setViaturaId(data.viaturaid);
+      setTipoId(data.tipoid);
+      setDataAgendada(new Date(data.dataagendada));
+      setStatus(data.status);
+    };
+
     fetchData();
-  }, []);
+    fetchAgendamento();
+  }, [id, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    console.log(userId,viaturaId, tipoId, dataAgendada);
     if (!userId || !viaturaId || !tipoId || !dataAgendada || !(dataAgendada instanceof Date)) {
       toast({
         title: "Erro de validação",
@@ -76,28 +102,29 @@ const AddAgendamento = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("tblagendamentoservico").insert([
-        {
+      const { error } = await supabase
+        .from("tblagendamentoservico")
+        .update({
           userid: userId,
           viaturaid: viaturaId,
           tipoid: tipoId,
           dataagendada: dataAgendada.toISOString(),
-          status: status,
-        },
-      ]);
+          status,
+        })
+        .eq("id", id);
 
       if (error) throw error;
 
       toast({
-        title: "Agendamento criado",
-        description: "O serviço foi agendado com sucesso.",
+        title: "Agendamento atualizado",
+        description: "As informações foram salvas com sucesso.",
       });
 
       navigate("/agendamentos");
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao agendar o serviço. Tente novamente.",
+        description: "Erro ao atualizar o agendamento.",
         variant: "destructive",
       });
     } finally {
@@ -112,8 +139,8 @@ const AddAgendamento = () => {
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Adicionar Agendamento</h2>
-          <p className="text-muted-foreground">Agende um serviço de assistência para uma viatura</p>
+          <h2 className="text-3xl font-bold tracking-tight">Editar Agendamento</h2>
+          <p className="text-muted-foreground">Atualize os dados do serviço agendado</p>
         </div>
       </div>
 
@@ -121,7 +148,7 @@ const AddAgendamento = () => {
         <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle>Informações do Agendamento</CardTitle>
-            <CardDescription>Preencha os dados do serviço a ser agendado</CardDescription>
+            <CardDescription>Edite os dados do serviço</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -130,7 +157,7 @@ const AddAgendamento = () => {
                 <Label htmlFor="usuario">Usuário Responsável*</Label>
                 <Select value={userId} onValueChange={setUserId}>
                   <SelectTrigger id="usuario">
-                    <SelectValue placeholder={usuarios.length === 0 ? "Carregando usuários..." : "Selecione o usuário"} />
+                    <SelectValue placeholder="Selecione o usuário" />
                   </SelectTrigger>
                   <SelectContent>
                     {usuarios.map((u) => (
@@ -147,7 +174,7 @@ const AddAgendamento = () => {
                 <Label htmlFor="viatura">Viatura*</Label>
                 <Select value={viaturaId} onValueChange={setViaturaId}>
                   <SelectTrigger id="viatura">
-                    <SelectValue placeholder={viaturas.length === 0 ? "Carregando viaturas..." : "Selecione uma viatura"} />
+                    <SelectValue placeholder="Selecione a viatura" />
                   </SelectTrigger>
                   <SelectContent>
                     {viaturas.map((v) => (
@@ -164,7 +191,7 @@ const AddAgendamento = () => {
                 <Label htmlFor="tipo">Tipo de Serviço*</Label>
                 <Select value={tipoId} onValueChange={setTipoId}>
                   <SelectTrigger id="tipo">
-                    <SelectValue placeholder={tiposAssistencia.length === 0 ? "Carregando tipos..." : "Selecione o tipo de serviço"} />
+                    <SelectValue placeholder="Selecione o tipo de serviço" />
                   </SelectTrigger>
                   <SelectContent>
                     {tiposAssistencia.map((t) => (
@@ -181,8 +208,7 @@ const AddAgendamento = () => {
                 <Label>Data Agendada*</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dataAgendada && "text-muted-foreground")}>
-                      <Calendar className="mr-2 h-4 w-4" />
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dataAgendada && "text-muted-foreground")}>                      <Calendar className="mr-2 h-4 w-4" />
                       {dataAgendada
                         ? format(dataAgendada, "dd/MM/yyyy", { locale: ptBR })
                         : <span>Selecione uma data</span>}
@@ -217,11 +243,9 @@ const AddAgendamento = () => {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button type="button" variant="outline" onClick={() => navigate("/agendamentos")}>
-              Cancelar
-            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate("/agendamentos")}>Cancelar</Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar Agendamento"}
+              {isSubmitting ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </CardFooter>
         </form>
@@ -230,5 +254,4 @@ const AddAgendamento = () => {
   );
 };
 
-export default AddAgendamento;
-
+export default EditAgendamento;

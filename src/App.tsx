@@ -21,6 +21,10 @@ import EditViatura from "./pages/Viaturas/EditViatura";
 import AddFuncionario from "./pages/Funcionarios/AddFuncionario";
 import EditarFuncionario from "./pages/Funcionarios/EditarFuncionario";
 import { AuthProvider } from "./pages/Auth/AuthContext";
+import AddAgendamento from "./pages/Agendamentos/AddAgendamento";
+import EditAgendamento from "./pages/Agendamentos/EditAgendamento";
+import AddServico from "./pages/Servicos/AddServicos";
+import EditServico from "./pages/Servicos/EditServicos";
 
 const queryClient = new QueryClient();
 
@@ -133,10 +137,42 @@ const App = () => (
               }
             />
             <Route
+              path="/agendamentos/add"
+              element={
+                <MainLayout>
+                  <AddAgendamento />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/agendamentos/edit/:id"
+              element={
+                <MainLayout>
+                  <EditAgendamento />
+                </MainLayout>
+              }
+            />
+            <Route
               path="/servicos"
               element={
                 <MainLayout>
                   <ServicosList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/servicos/add"
+              element={
+                <MainLayout>
+                  <AddServico />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/servicos/edit/:id"
+              element={
+                <MainLayout>
+                  <EditServico />
                 </MainLayout>
               }
             />

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 type Usuario = {
   userid: number;
   useremail: string;
+  usernome: string;
   funcionarioId?: number;
   permissoes: any[];
 };
