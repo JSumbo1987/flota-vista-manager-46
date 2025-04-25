@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { EyeIcon, Edit, Trash, Plus, ChevronDown, ClipboardList } from "lucide-react";
 import {
@@ -31,39 +31,72 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient";
 
-// MOCK DATA (Exemplo)
-const checklistMock = [
-  {
-    id: 1,
-    viatura: "Toyota Hilux (ABC-1234)",
-    motorista: "Carlos Manuel",
-    odometro: 123456.78,
-    nivelCombustivel: "Meio tanque",
-    condicaoPneus: "Calibrado",
-    observacao: "Tudo ok",
-    dataCheckList: "2025-04-20",
-    status: "Aprovado",
-  },
-  {
-    id: 2,
-    viatura: "Ford Ranger (XYZ-5678)",
-    motorista: "Ana Silva",
-    odometro: 87654.32,
-    nivelCombustivel: "Reserva",
-    condicaoPneus: "Troca necessária",
-    observacao: "Pneu dianteiro desgastado",
-    dataCheckList: "2025-04-18",
-    status: "Pendências",
-  },
-];
+interface Checklist {
+  id: number;
+  viatura: string;
+  motorista: string;
+  odometro: number;
+  nivelcombustivel: string;
+  condicaopneus: string;
+  observacao: string;
+  datachecklist: string;
+  status: string;
+  tblviaturas?: {
+    viaturamarca: string;
+    viaturamatricula: string;
+  };
+  tblfuncionarios?: {
+    funcionarionome: string;
+  };
+}
 
-const ChecklistDetails = ({ checklist, onClose }: { checklist: typeof checklistMock[0] | null, onClose: () => void }) => {
+interface ChecklistItem {
+  id: number;
+  checklistid: number;
+  descricao: string;
+  status: string;
+}
+
+const ChecklistDetails = ({
+  checklist,
+  onClose,
+}: {
+  checklist: Checklist | null;
+  onClose: () => void;
+}) => {
+  const { toast } = useToast();
+  const [items, setItems] = useState<ChecklistItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!checklist) return;
+
+    const fetchItems = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("tblchecklistitem")
+        .select("*")
+        .eq("checklistid", checklist.id);
+
+      if (error) {
+        toast({ title: "Erro ao carregar itens", description: error.message });
+      } else {
+        setItems(data || []);
+      }
+      setLoading(false);
+    };
+
+    fetchItems();
+  }, [checklist, toast]);
+
   if (!checklist) return null;
 
   return (
-    <DialogContent className="max-w-md">
+    <DialogContent className="max-w-md max-h-[80vh] overflow-auto">
       <DialogHeader>
         <DialogTitle>Detalhes do Checklist</DialogTitle>
         <DialogDescription>Informações do checklist da viatura</DialogDescription>
@@ -77,11 +110,13 @@ const ChecklistDetails = ({ checklist, onClose }: { checklist: typeof checklistM
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Viatura</p>
-            <p className="text-sm font-medium">{checklist.viatura}</p>
+            <p className="text-sm font-medium">
+              {checklist.tblviaturas?.viaturamarca} ({checklist.tblviaturas?.viaturamatricula})
+            </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Motorista</p>
-            <p className="text-sm font-medium">{checklist.motorista}</p>
+            <p className="text-sm font-medium">{checklist.tblfuncionarios?.funcionarionome}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Odômetro</p>
@@ -89,11 +124,11 @@ const ChecklistDetails = ({ checklist, onClose }: { checklist: typeof checklistM
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Combustível</p>
-            <p className="text-sm font-medium">{checklist.nivelCombustivel}</p>
+            <p className="text-sm font-medium">{checklist.nivelcombustivel}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Pneus</p>
-            <p className="text-sm font-medium">{checklist.condicaoPneus}</p>
+            <p className="text-sm font-medium">{checklist.condicaopneus}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Status</p>
@@ -102,7 +137,7 @@ const ChecklistDetails = ({ checklist, onClose }: { checklist: typeof checklistM
           <div className="col-span-2">
             <p className="text-sm text-muted-foreground">Data</p>
             <p className="text-sm font-medium">
-              {new Date(checklist.dataCheckList).toLocaleDateString("pt-PT")}
+              {new Date(checklist.datachecklist).toLocaleDateString("pt-PT")}
             </p>
           </div>
         </div>
@@ -112,10 +147,37 @@ const ChecklistDetails = ({ checklist, onClose }: { checklist: typeof checklistM
             <p className="text-sm font-medium">{checklist.observacao}</p>
           </div>
         )}
+
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Itens do Checklist</h3>
+          {loading ? (
+            <p>Carregando itens...</p>
+          ) : items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum item encontrado.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.descricao}</TableCell>
+                    <TableCell>{item.status}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Fechar</Button>
-        <Button onClick={() => {}}>Editar</Button>
+        <Button variant="outline" onClick={onClose}>
+          Fechar
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -124,27 +186,75 @@ const ChecklistDetails = ({ checklist, onClose }: { checklist: typeof checklistM
 const ChecklistsList = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [selectedChecklist, setSelectedChecklist] = useState<typeof checklistMock[0] | null>(null);
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [selectedChecklist, setSelectedChecklist] = useState<Checklist | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [checklistToDelete, setChecklistToDelete] = useState<number | null>(null);
+
+  const fetchChecklists = async () => {
+    const { data, error } = await supabase
+      .from("tblchecklist")
+      .select(
+        `*,
+        tblfuncionarios:motoristaid(funcionarionome),
+        tblviaturas:viaturaid(viaturamarca, viaturamatricula)`
+      );
+
+    if (error) {
+      toast({ title: "Erro", description: error.message });
+    } else {
+      setChecklists(data || []);
+    }
+  };
+
+  useEffect(() => {
+    fetchChecklists();
+  }, []);
 
   const handleDelete = (id: number) => {
     setChecklistToDelete(id);
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
-    toast({
-      title: "Checklist excluído",
-      description: `O checklist foi removido com sucesso.`,
-    });
-    setShowDeleteDialog(false);
+  const confirmDelete = async () => {
+    if (checklistToDelete === null) return;
+
+    const { error } = await supabase.from("tblchecklist").delete().eq("id", checklistToDelete);
+
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message });
+    } else {
+      toast({ title: "Checklist excluído", description: `Checklist removido com sucesso.` });
+      setChecklists((prev) => prev.filter((c) => c.id !== checklistToDelete)); // atualiza local
+      setChecklistToDelete(null);
+      setShowDeleteDialog(false);
+    }
   };
 
-  const viewDetails = (checklist: typeof checklistMock[0]) => {
+  const viewDetails = (checklist: Checklist) => {
     setSelectedChecklist(checklist);
     setShowDetailsDialog(true);
+  };
+
+  const getStatusBadge = (estado: string) => {
+    const base = "text-xs px-2 py-1 rounded";
+    switch (estado.toLowerCase()) {
+      case "aprovado":
+        return (
+          <Badge variant="outline" className={`${base} bg-green-100 text-green-800`}>
+            Aprovado
+          </Badge>
+        );
+      case "reprovado":
+        return (
+          <Badge variant="outline" className={`${base} bg-red-100 text-red-800`}>
+            Reprovado
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">{estado}</Badge>;
+    }
   };
 
   return (
@@ -155,7 +265,8 @@ const ChecklistsList = () => {
           <p className="text-muted-foreground">Listagem de checklists de viaturas</p>
         </div>
         <Button onClick={() => navigate("/checklist/add")}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Checklist
+          {" "}
+          <Plus className="mr-2 h-4 w-4" /> Novo Checklist{" "}
         </Button>
       </div>
 
@@ -173,19 +284,21 @@ const ChecklistsList = () => {
                 <TableHead>Data</TableHead>
                 <TableHead>Odômetro</TableHead>
                 <TableHead>Combustível</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {checklistMock.map((checklist) => (
+              {checklists.map((checklist) => (
                 <TableRow key={checklist.id}>
-                  <TableCell>{checklist.viatura}</TableCell>
-                  <TableCell>{checklist.motorista}</TableCell>
-                  <TableCell>{new Date(checklist.dataCheckList).toLocaleDateString("pt-PT")}</TableCell>
+                  <TableCell>
+                    {checklist.tblviaturas?.viaturamarca} ({checklist.tblviaturas?.viaturamatricula})
+                  </TableCell>
+                  <TableCell>{checklist.tblfuncionarios?.funcionarionome}</TableCell>
+                  <TableCell>{new Date(checklist.datachecklist).toLocaleDateString("pt-PT")}</TableCell>
                   <TableCell>{checklist.odometro.toLocaleString()} km</TableCell>
-                  <TableCell>{checklist.nivelCombustivel}</TableCell>
-                  <TableCell>{checklist.status}</TableCell>
+                  <TableCell>{checklist.nivelcombustivel}</TableCell>
+                  <TableCell>{getStatusBadge(checklist.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -194,20 +307,17 @@ const ChecklistsList = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => viewDetails(checklist)}>
-                          <EyeIcon className="mr-2 h-4 w-4" />
-                          Ver detalhes
+                        <DropdownMenuItem onClick={() => navigate(`/checklist/viewDetails/${checklist.id}`)}>
+                          <EyeIcon className="mr-2 h-4 w-4" /> Ver detalhes
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/checklists/edit/${checklist.id}`)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
+                        <DropdownMenuItem onClick={() => navigate(`/checklist/edit/${checklist.id}`)}>
+                          <Edit className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDelete(checklist.id)}
                           className="text-destructive focus:text-destructive"
                         >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Excluir
+                          <Trash className="mr-2 h-4 w-4" /> Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -228,17 +338,27 @@ const ChecklistsList = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Excluir</Button>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button className="bg-red-600 hover:bg-red-700" onClick={confirmDelete}>
+              Excluir
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <ChecklistDetails checklist={selectedChecklist} onClose={() => setShowDetailsDialog(false)} />
+        {selectedChecklist && (
+          <ChecklistDetails
+            checklist={selectedChecklist}
+            onClose={() => setShowDetailsDialog(false)}
+          />
+        )}
       </Dialog>
     </div>
   );
 };
 
 export default ChecklistsList;
+

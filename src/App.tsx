@@ -25,6 +25,10 @@ import AddAgendamento from "./pages/Agendamentos/AddAgendamento";
 import EditAgendamento from "./pages/Agendamentos/EditAgendamento";
 import AddServico from "./pages/Servicos/AddServicos";
 import EditServico from "./pages/Servicos/EditServicos";
+import AddChecklist from "./pages/CheckList/AddCheckList";
+import ChecklistDetails from "./pages/CheckList/ChecklistDetails";
+import EditChecklist from "./pages/CheckList/EditCheckList";
+import EditCertificado from "./pages/Certificados/EditCertificado";
 
 const queryClient = new QueryClient();
 
@@ -70,7 +74,7 @@ const App = () => (
               path="/certificados/edit/:id"
               element={
                 <MainLayout>
-                  <AddCertificado />
+                  <EditCertificado />
                 </MainLayout>
               }
             />
@@ -119,7 +123,7 @@ const App = () => (
               }
             />
             <Route
-              path="/funcionarios/edit/:funcionarioId"
+              path="/funcionarios/edit/:funcionarioid"
               element={
                 <MainLayout>
                   <EditarFuncionario />
@@ -181,6 +185,30 @@ const App = () => (
               element={
                 <MainLayout>
                   <ChecklistsList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/checklist/add"
+              element={
+                <MainLayout>
+                  <AddChecklist />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/checklist/edit/:id"
+              element={
+                <MainLayout>
+                  <EditChecklist />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/checklist/viewDetails/:id"
+              element={
+                <MainLayout>
+                  <ChecklistDetails />
                 </MainLayout>
               }
             />

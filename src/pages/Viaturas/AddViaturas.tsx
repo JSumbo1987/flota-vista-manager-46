@@ -150,7 +150,7 @@ const AddViatura = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Quilometragem*</Label>
+                <Label>Odômetro (km)*</Label>
                 <Input
                   type="number"
                   step="0.01"

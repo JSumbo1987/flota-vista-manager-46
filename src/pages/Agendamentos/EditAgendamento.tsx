@@ -228,7 +228,7 @@ const EditAgendamento = () => {
 
               {/* Status */}
               <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status">Estado</Label>
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger id="status">
                     <SelectValue />

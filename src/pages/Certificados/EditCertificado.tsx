@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,10 +31,12 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
-const AddCertificado = () => {
+const EditCertificado = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [viaturas, setViaturas] = useState<
     { viaturaid: string; viaturamarca: string; viaturamatricula: string }[]
   >([]);
@@ -43,30 +45,64 @@ const AddCertificado = () => {
   const [centroInspeccao, setCentroInspeccao] = useState("");
   const [numeroDoQuadro, setNumeroDoQuadro] = useState("");
   const [quilometragem, setQuilometragem] = useState("");
-  const [dataHoraInspeccao, setDataHoraInspeccao] = useState<Date | undefined>(
-    new Date()
-  );
-  const [proximaInspeccao, setProximaInspeccao] = useState<Date | undefined>();
+  const [dataHoraInspeccao, setDataHoraInspeccao] = useState<Date>();
+  const [proximaInspeccao, setProximaInspeccao] = useState<Date>();
   const [numeroCertificado, setNumeroCertificado] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arquivoExistente, setArquivoExistente] = useState("");
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchViaturas = async () => {
-      const { data, error } = await supabase
+    const fetchData = async () => {
+      const { data: viaturasData } = await supabase
         .from("tblviaturas")
         .select("viaturaid, viaturamarca, viaturamatricula");
 
-      if (!error && data) {
+      if (viaturasData) {
         setViaturas(
-          data.map((v) => ({
+          viaturasData.map((v) => ({
             ...v,
-            viaturaid: String(v.viaturaid), // força string
+            viaturaid: String(v.viaturaid),
           }))
         );
       }
+
+      const { data: cert, error } = await supabase
+        .from("tblcertificadoinspeccao")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (!error && cert) {
+        setViaturaId(String(cert.viaturaid));
+        setCentroInspeccao(cert.centroinspeccao);
+        setNumeroDoQuadro(cert.numerodoquadro);
+        setQuilometragem(cert.quilometragem);
+        setDataHoraInspeccao(new Date(cert.datahorainspeccao));
+        setProximaInspeccao(new Date(cert.proximainspeccao));
+        setNumeroCertificado(cert.numerocertificado);
+        setArquivoExistente(cert.copiadocertificado || "");
+        // passa direto o path
+        if (cert.copiadocertificado) {
+          fetchSignedUrl(cert.copiadocertificado);
+        }
+      }
     };
-    fetchViaturas();
-  }, []);
+    fetchData();
+  }, [id]);
+
+  const fetchSignedUrl = async (path: string) => {
+    if (!path) return;
+    const { data, error } = await supabase.storage
+      .from('certificados')
+      .createSignedUrl(path, 60);
+      
+    if (error) {
+      console.error(error);
+    } else {
+      setSignedUrl(data?.signedUrl ?? null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +125,6 @@ const AddCertificado = () => {
     }
 
     setIsSubmitting(true);
-
     const dataInspecaoFormatada = format(dataHoraInspeccao, "yyyy/MM/dd");
     const proximaInspecaoFormatada = format(proximaInspeccao, "yyyy/MM/dd");
 
@@ -103,44 +138,43 @@ const AddCertificado = () => {
           ? "a_vencer"
           : "válido";
 
-      let filePath = "";
+      let filePath = arquivoExistente;
 
       if (arquivo) {
         const ext = arquivo.name.split(".").pop();
         filePath = `certificados/${numeroCertificado}-${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
+        await supabase.storage
           .from("certificados")
-          .upload(filePath, arquivo);
-        if (uploadError) throw uploadError;
+          .upload(filePath, arquivo, { upsert: true });
       }
 
-      const { error: insertError } = await supabase
+      const { error } = await supabase
         .from("tblcertificadoinspeccao")
-        .insert([
-          {
-            viaturaid: viaturaId,
-            centroinspeccao: centroInspeccao,
-            numerodoquadro: numeroDoQuadro,
-            quilometragem: quilometragem,
-            datahorainspeccao: dataInspecaoFormatada,
-            proximainspeccao: proximaInspecaoFormatada,
-            numerocertificado: numeroCertificado,
-            copiadocertificado: filePath,
-            status: status,
-          },
-        ]);
+        .update({
+          viaturaid: viaturaId,
+          centroinspeccao: centroInspeccao,
+          numerodoquadro: numeroDoQuadro,
+          quilometragem: quilometragem,
+          datahorainspeccao: dataInspecaoFormatada,
+          proximainspeccao: proximaInspecaoFormatada,
+          numerocertificado: numeroCertificado,
+          copiadocertificado: filePath,
+          status: status,
+        })
+        .eq("id", id);
 
-      if (insertError) throw insertError;
+      if (error) throw error;
 
       toast({
-        title: "Certificado salvo",
-        description: "O certificado foi registrado com sucesso.",
+        title: "Certificado atualizado",
+        description: "O certificado foi editado com sucesso.",
       });
+
       navigate("/certificados");
     } catch (error: any) {
       console.error(error);
       toast({
-        title: "Erro ao salvar",
+        title: "Erro ao atualizar",
         description: error.message || "Erro desconhecido.",
         variant: "destructive",
       });
@@ -162,10 +196,10 @@ const AddCertificado = () => {
         </Button>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
-            Adicionar Certificado
+            Editar Certificado
           </h2>
           <p className="text-muted-foreground">
-            Registre um novo certificado de inspeção para uma viatura
+            Atualize os dados do certificado de inspeção
           </p>
         </div>
       </div>
@@ -175,7 +209,7 @@ const AddCertificado = () => {
           <CardHeader>
             <CardTitle>Informações do Certificado</CardTitle>
             <CardDescription>
-              Preencha os dados do certificado de inspeção
+              Altere os campos necessários e salve
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -234,7 +268,7 @@ const AddCertificado = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Data da Inspeção*</Label>
+                <Label>Data e Hora da Inspeção*</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -291,16 +325,28 @@ const AddCertificado = () => {
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="arquivo">Arquivo (PDF ou imagem)*</Label>
+                <Label htmlFor="arquivo">
+                  Arquivo (PDF ou imagem) {arquivoExistente && " (já existente) "}
+                </Label>
+                {arquivoExistente && (
+                  <a
+                    href={`${signedUrl ? signedUrl.toString() : ""}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-blue-600 underline"
+                  >
+                    Visualizar arquivo actual
+                  </a>
+                )}
                 <Input
                   type="file"
                   id="arquivo"
                   accept=".pdf,.png,.jpg,.jpeg"
                   onChange={(e) => setArquivo(e.target.files?.[0] || null)}
-                  required
                 />
               </div>
             </div>
+            
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button
@@ -311,7 +357,7 @@ const AddCertificado = () => {
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar Certificado"}
+              {isSubmitting ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </CardFooter>
         </form>
@@ -320,5 +366,4 @@ const AddCertificado = () => {
   );
 };
 
-export default AddCertificado;
-
+export default EditCertificado;

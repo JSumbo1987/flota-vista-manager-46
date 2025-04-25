@@ -182,7 +182,7 @@ const AgendamentoList = () => {
                 <TableHead>Matrícula</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>

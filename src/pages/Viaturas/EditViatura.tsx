@@ -198,7 +198,7 @@ const EditViatura = () => {
               <InputGroup label="Ano de Fabricação*" value={viaturaAnoFabrica} onChange={setAnoFabrica} placeholder="Ex: 2019" />
               <InputGroup label="Cor*" value={viaturaCor} onChange={setCor} placeholder="Ex: Prata" />
               <InputGroup
-                label="Quilometragem*"
+                label="Odômetro (km)*"
                 value={quilometragem}
                 onChange={setQuilometragem}
                 placeholder="Ex: 123456.78"
