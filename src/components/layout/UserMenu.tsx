@@ -52,7 +52,7 @@ const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/perfil")}>
+        <DropdownMenuItem onClick={() => navigate(`/perfil/${usuario.userid}`)}>
           <User className="mr-2 h-4 w-4" />
           <span>Meu Perfil</span>
         </DropdownMenuItem>

@@ -1,71 +1,157 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, Edit, Trash, Plus, ChevronDown, Truck } from "lucide-react";
+import { EyeIcon, Edit, Trash, Plus, ChevronDown, BadgePercent } from "lucide-react";
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-
-const licencasMock = [
-  {
-    id: "1",
-    numero: "LICTRANS-001-2024",
-    viatura: "Toyota Hiace (XYZ-3210)",
-    dataInicio: "2024-02-01",
-    dataFim: "2025-02-01",
-    entidadeEmissora: "Ministério dos Transportes",
-    status: "válido",
-  },
-  {
-    id: "2",
-    numero: "LICTRANS-002-2023",
-    viatura: "Hyundai H1 (ABC-5678)",
-    dataInicio: "2023-05-15",
-    dataFim: "2024-05-15",
-    entidadeEmissora: "Ministério dos Transportes",
-    status: "a_vencer",
-  },
-  {
-    id: "3",
-    numero: "LICTRANS-003-2022",
-    viatura: "Isuzu D-Max (DEF-9012)",
-    dataInicio: "2021-03-10",
-    dataFim: "2022-03-10",
-    entidadeEmissora: "Ministério dos Transportes",
-    status: "expirado",
-  },
-];
+import { supabase } from "@/lib/supabaseClient";
 
 const LicencaTransporteList = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [licencas, setLicencas] = useState([]);
   const [selectedLicenca, setSelectedLicenca] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [licencaToDelete, setLicencaToDelete] = useState(null);
+
+  useEffect(() => {
+    const fetchLicencas = async () => {
+      const { data, error } = await supabase
+        .from("tbllicencatransportacao")
+        .select(`*,
+          tblviaturas:viaturaid ( viaturaid, viaturamarca, viaturamodelo, viaturamatricula )
+        `);
+
+      if (error) {
+        console.error("Erro ao buscar licenças de transporte:", error);
+      } else {
+        const licencasFormatadas = await Promise.all(
+          data.map(async (item) => {
+            let signedUrl = null;
+
+            if (item.copialicencatransporte) {
+              const { data: urlData, error: urlError } = await supabase.storage
+                .from("documentos")
+                .createSignedUrl(item.copialicencatransporte, 60);
+
+              if (urlError) {
+                console.error("Erro ao gerar URL assinada:", urlError);
+              } else {
+                signedUrl = urlData?.signedUrl || null;
+              }
+            }
+
+            return {
+              id: item.id,
+              descricao: item.descricao,
+              observacao: item.observacao,
+              proprietario: item.proprietario,
+              dataemissao: item.dataemissao,
+              datavencimento: item.datavencimento,
+              licencastatus: item.licencastatus,
+              signedUrl,
+              viatura: item.tblviaturas
+                ? `${item.tblviaturas.viaturamarca} ${item.tblviaturas.viaturamodelo} (${item.tblviaturas.viaturamatricula})`
+                : "N/A",
+            };
+          })
+        );
+
+        setLicencas(licencasFormatadas);
+      }
+    };
+
+    fetchLicencas();
+  }, []);
 
   const handleDelete = (id) => {
     setLicencaToDelete(id);
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
-    toast({
-      title: "Licença excluída",
-      description: `A licença foi excluída com sucesso.`,
-    });
-    setShowDeleteDialog(false);
+  const confirmDelete = async () => {
+    if (!licencaToDelete) {
+      toast({
+        title: "Erro",
+        description: "ID da licença não encontrado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: licenca, error: fetchError } = await supabase
+        .from("tbllicencatransportacao")
+        .select("copialicencatransporte")
+        .eq("id", licencaToDelete)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const caminhoArquivo = licenca?.copialicencatransporte;
+
+      const { error: deleteError } = await supabase
+        .from("tbllicencatransportacao")
+        .delete()
+        .eq("id", licencaToDelete);
+
+      if (deleteError) throw deleteError;
+
+      if (caminhoArquivo) {
+        const { error: storageError } = await supabase.storage
+          .from("documentos")
+          .remove([caminhoArquivo]);
+
+        if (storageError) {
+          console.error("Erro ao deletar do storage:", storageError.message);
+        }
+      }
+
+      toast({
+        title: "Licença de transporte excluída",
+        description: "A licença foi excluída com sucesso.",
+      });
+
+      setShowDeleteDialog(false);
+      setLicencaToDelete(null);
+      setLicencas((prev) => prev.filter((licenca) => licenca.id !== licencaToDelete));
+    } catch (error) {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message || "Erro desconhecido.",
+        variant: "destructive",
+      });
+    }
   };
 
   const viewDetails = (licenca) => {
@@ -102,7 +188,7 @@ const LicencaTransporteList = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Licenças</CardTitle>
+          <CardTitle>Lista de Licenças de Transporte</CardTitle>
           <CardDescription>
             Licenças de transporte registradas no sistema
           </CardDescription>
@@ -111,22 +197,22 @@ const LicencaTransporteList = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Número</TableHead>
+                <TableHead>Proprietário</TableHead>
                 <TableHead>Viatura</TableHead>
-                <TableHead>Data de Início</TableHead>
-                <TableHead>Data de Fim</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Data de Emissão</TableHead>
+                <TableHead>Data de Validade</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {licencasMock.map((licenca) => (
+              {licencas.map((licenca) => (
                 <TableRow key={licenca.id}>
-                  <TableCell className="font-medium">{licenca.numero}</TableCell>
+                  <TableCell className="font-medium">{licenca.proprietario}</TableCell>
                   <TableCell>{licenca.viatura}</TableCell>
-                  <TableCell>{new Date(licenca.dataInicio).toLocaleDateString("pt-PT")}</TableCell>
-                  <TableCell>{new Date(licenca.dataFim).toLocaleDateString("pt-PT")}</TableCell>
-                  <TableCell>{getStatusBadge(licenca.status)}</TableCell>
+                  <TableCell>{new Date(licenca.dataemissao).toLocaleDateString("pt-PT")}</TableCell>
+                  <TableCell>{new Date(licenca.datavencimento).toLocaleDateString("pt-PT")}</TableCell>
+                  <TableCell>{getStatusBadge(licenca.licencastatus)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -157,7 +243,7 @@ const LicencaTransporteList = () => {
         </CardContent>
       </Card>
 
-      {/* Diálogo de exclusão */}
+      {/* Diálogo de Confirmação de Exclusão */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
@@ -173,7 +259,7 @@ const LicencaTransporteList = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de detalhes */}
+      {/* Diálogo de Detalhes */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         {selectedLicenca && (
           <DialogContent className="max-w-md">
@@ -184,38 +270,50 @@ const LicencaTransporteList = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-center mb-4">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Truck className="h-6 w-6 text-primary" />
+                  <BadgePercent className="h-6 w-6 text-primary" />
                 </div>
               </div>
-              <div className={`p-2 rounded ${selectedLicenca.status === "válido" ? "bg-green-100 text-green-800 border-green-200" : selectedLicenca.status === "a_vencer" ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-red-100 text-red-800 border-red-200"}`}>
-                <p className="text-sm font-medium text-center capitalize">{selectedLicenca.status.replace("_", " ")}</p>
+              <div className={`p-2 rounded ${selectedLicenca.licencastatus === "válido" ? "bg-green-100 text-green-800 border-green-200" : selectedLicenca.licencastatus === "a_vencer" ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-red-100 text-red-800 border-red-200"}`}>
+                <p className="text-sm font-medium text-center capitalize">{selectedLicenca.licencastatus.replace("_", " ")}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Número</p>
-                  <p className="text-sm font-medium">{selectedLicenca.numero}</p>
+                  <p className="text-sm text-muted-foreground">Proprietário</p>
+                  <p className="text-sm font-medium">{selectedLicenca.proprietario}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Entidade Emissora</p>
-                  <p className="text-sm font-medium">{selectedLicenca.entidadeEmissora}</p>
+                  <p className="text-sm text-muted-foreground">Viatura</p>
+                  <p className="text-sm font-medium">{selectedLicenca.viatura}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Data de Início</p>
-                  <p className="text-sm font-medium">{new Date(selectedLicenca.dataInicio).toLocaleDateString("pt-PT")}</p>
+                  <p className="text-sm text-muted-foreground">Data de Emissão</p>
+                  <p className="text-sm font-medium">{new Date(selectedLicenca.dataemissao).toLocaleDateString("pt-PT")}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Data de Fim</p>
-                  <p className="text-sm font-medium">{new Date(selectedLicenca.dataFim).toLocaleDateString("pt-PT")}</p>
+                  <p className="text-sm text-muted-foreground">Data de Validade</p>
+                  <p className="text-sm font-medium">{new Date(selectedLicenca.datavencimento).toLocaleDateString("pt-PT")}</p>
                 </div>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Viatura</p>
-                <p className="text-sm font-medium">{selectedLicenca.viatura}</p>
+                <div className="col-span-2">
+                  <p className="text-sm text-muted-foreground">Descrição</p>
+                  <p className="text-sm font-medium">{selectedLicenca.descricao}</p>
+                </div>
+                {selectedLicenca.signedUrl && (
+                  <div className="col-span-2 mt-2">
+                    <p className="text-sm text-muted-foreground mb-2">Documento Anexado:</p>
+                    <a
+                      href={selectedLicenca.signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline text-sm font-medium"
+                    >
+                      Visualizar documento em anexo
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>Fechar</Button>
-              <Button onClick={() => navigate(`/licencas-transporte/edit/${selectedLicenca.id}`)}>Editar</Button>
             </DialogFooter>
           </DialogContent>
         )}

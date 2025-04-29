@@ -1,10 +1,11 @@
-
 import { useNavigate } from "react-router-dom";
 import { X, Bell } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface NotificationsDropdownProps {
   onClose: () => void;
@@ -17,6 +18,7 @@ interface NotificationItemProps {
   time: string;
   read: boolean;
   type: "warning" | "info" | "success" | "error";
+  route: string;
   onClick: () => void;
 }
 
@@ -64,58 +66,25 @@ const NotificationItem = ({
 const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
   const navigate = useNavigate();
 
-  const notifications = [
-    {
-      id: "1",
-      title: "Licença a vencer",
-      description: "Viatura ABC-1234 com licença vencendo em 5 dias",
-      time: "Há 15 min",
-      read: false,
-      type: "warning",
-      route: "/licenca-transporte/1",
-    },
-    {
-      id: "2",
-      title: "Checklist pendente",
-      description: "Você tem 3 checklists pendentes para hoje",
-      time: "Há 1 hora",
-      read: false,
-      type: "warning",
-      route: "/checklist",
-    },
-    {
-      id: "3",
-      title: "Manutenção agendada",
-      description: "Manutenção programada para viatura XYZ-5678 amanhã",
-      time: "Há 3 horas",
-      read: true,
-      type: "info",
-      route: "/agendamentos/3",
-    },
-    {
-      id: "4",
-      title: "Novo serviço registrado",
-      description: "Serviço #1234 foi registrado com sucesso",
-      time: "Há 5 horas",
-      read: true,
-      type: "success",
-      route: "/servicos/4",
-    },
-    {
-      id: "5",
-      title: "Certificado expirado",
-      description: "Certificado da viatura DEF-5678 expirou hoje",
-      time: "Há 8 horas",
-      read: true,
-      type: "error",
-      route: "/certificados/5",
-    },
-  ];
+  // Usando só o hook customizado para pegar notificações
+  const { notifications, loading, error } = useNotifications();
 
-  const handleNotificationClick = (route: string) => {
-    onClose();
-    navigate(route);
-  };
+  // Mapeia as notificações para o formato esperado pelo NotificationItem
+  const mappedNotifications = notifications.map((item) => ({
+    id: item.id,
+    title: item.titulo || "Sem título",
+    description: item.descricao || "",
+    time: item.created_at
+      ? new Date(item.created_at).toLocaleString()
+      : "",
+    read: item.lido || false,
+    type: (item.tipo as any) || "info",
+    route: item.rota || "/",
+    onClick: () => {
+      onClose();
+      navigate(item.rota || "/");
+    },
+  }));
 
   return (
     <div className="absolute right-0 mt-2 w-80 bg-card rounded-md shadow-lg z-50 border">
@@ -124,7 +93,7 @@ const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
           <Bell className="h-4 w-4" />
           <h3 className="font-medium">Notificações</h3>
           <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-            {notifications.filter((n) => !n.read).length}
+            {mappedNotifications.filter((n) => !n.read).length}
           </span>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
@@ -134,18 +103,21 @@ const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
 
       <ScrollArea className="h-[400px]">
         <div className="p-0">
-          {notifications.map((notification) => (
-            <NotificationItem
-              key={notification.id}
-              id={notification.id}
-              title={notification.title}
-              description={notification.description}
-              time={notification.time}
-              read={notification.read}
-              type={notification.type as any}
-              onClick={() => handleNotificationClick(notification.route)}
-            />
-          ))}
+          {loading ? (
+            <p className="p-3 text-center">Carregando notificações...</p>
+          ) : error ? (
+            <p className="p-3 text-center text-red-600">
+              Erro: {error}
+            </p>
+          ) : mappedNotifications.length === 0 ? (
+            <p className="p-3 text-center text-muted-foreground">
+              Nenhuma notificação
+            </p>
+          ) : (
+            mappedNotifications.map((notification) => (
+              <NotificationItem key={notification.id} {...notification} />
+            ))
+          )}
         </div>
       </ScrollArea>
 
@@ -167,3 +139,4 @@ const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
 };
 
 export default NotificationsDropdown;
+

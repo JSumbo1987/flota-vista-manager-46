@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { EyeIcon, Edit, Trash, Plus, ChevronDown, BadgePercent } from "lucide-react";
 import {
@@ -33,57 +33,131 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-
-const licencasMock = [
-  {
-    id: "1",
-    numero: "LICPUB-001-2024",
-    viatura: "Toyota Hilux (ABC-1234)",
-    dataInicio: "2024-01-01",
-    dataFim: "2024-12-31",
-    entidadeEmissora: "Administração Municipal",
-    status: "válido",
-  },
-  {
-    id: "2",
-    numero: "LICPUB-002-2024",
-    viatura: "Ford Ranger (XYZ-5678)",
-    dataInicio: "2023-07-01",
-    dataFim: "2024-07-01",
-    entidadeEmissora: "Administração Municipal",
-    status: "a_vencer",
-  },
-  {
-    id: "3",
-    numero: "LICPUB-003-2023",
-    viatura: "Mitsubishi L200 (DEF-9012)",
-    dataInicio: "2022-01-01",
-    dataFim: "2023-01-01",
-    entidadeEmissora: "Administração Municipal",
-    status: "expirado",
-  },
-];
+import { supabase } from "@/lib/supabaseClient";
 
 const LicencaPublicidadeList = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [licencas, setLicencas] = useState([]);
   const [selectedLicenca, setSelectedLicenca] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [licencaToDelete, setLicencaToDelete] = useState(null);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLicencas = async () => {
+      const { data, error } = await supabase
+        .from("tbllicencapublicidade")
+        .select(`*,
+          tblviaturas:viaturaid ( viaturaid, viaturamarca, viaturamodelo, viaturamatricula )
+        `);
+  
+      if (error) {
+        console.error("Erro ao buscar licenças:", error);
+      } else {
+        const licencasFormatadas = await Promise.all(
+          data.map(async (item) => {
+            let signedUrl = null;
+  
+            if (item.copialicencapublicidade) {
+              const { data: urlData, error: urlError } = await supabase.storage
+                .from("documentos")
+                .createSignedUrl(item.copialicencapublicidade, 60);
+  
+              if (urlError) {
+                console.error("Erro ao gerar URL assinada:", urlError);
+              } else {
+                signedUrl = urlData?.signedUrl || null;
+              }
+            }
+  
+            return {
+              id: item.id,
+              licencanumero: item.licencanumero,
+              descricao: item.descricao,
+              dataemissao: item.dataemissao,
+              datavencimento: item.datavencimento,
+              licencastatus: item.licencastatus,
+              copialicencapublicidade: item.copialicencapublicidade,
+              signedUrl,
+              viatura: item.tblviaturas
+                ? `${item.tblviaturas.viaturamarca} ${item.tblviaturas.viaturamodelo} (${item.tblviaturas.viaturamatricula})`
+                : "N/A",
+            };
+          })
+        );
+  
+        setLicencas(licencasFormatadas);
+      }
+    };
+  
+    fetchLicencas();
+  }, []);  
 
   const handleDelete = (id) => {
     setLicencaToDelete(id);
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
-    toast({
-      title: "Licença excluída",
-      description: `A licença foi excluída com sucesso.`,
-    });
-    setShowDeleteDialog(false);
+  const confirmDelete = async () => {
+    if (!licencaToDelete) {
+      toast({
+        title: "Erro",
+        description: "ID da licença não encontrado.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    try {
+      // 1. Buscar a licença pelo ID
+      const { data: licenca, error: fetchError } = await supabase
+        .from("tbllicencapublicidade")
+        .select("copialicencapublicidade")
+        .eq("id", licencaToDelete)
+        .single();
+  
+      if (fetchError) throw fetchError;
+  
+      const caminhoArquivo = licenca?.copialicencapublicidade;
+  
+      // 2. Deletar a licença do banco
+      const { error: deleteError } = await supabase
+        .from("tbllicencapublicidade")
+        .delete()
+        .eq("id", licencaToDelete);
+  
+      if (deleteError) throw deleteError;
+  
+      // 3. Se existir arquivo, deletar do storage
+      if (caminhoArquivo) {
+        const { error: storageError } = await supabase.storage
+          .from("documentos")
+          .remove([caminhoArquivo]);
+  
+        if (storageError) {
+          console.error("Erro ao deletar do storage:", storageError.message);
+        }
+      }
+  
+      toast({
+        title: "Licença excluída",
+        description: "A licença foi excluída com sucesso.",
+      });
+  
+      setShowDeleteDialog(false);
+      setLicencaToDelete(null);
+      setLicencas((prev) => prev.filter((licenca) => licenca.id !== licencaToDelete));
+    } catch (error) {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message || "Erro desconhecido.",
+        variant: "destructive",
+      });
+    }
   };
+  
 
   const viewDetails = (licenca) => {
     setSelectedLicenca(licenca);
@@ -112,7 +186,7 @@ const LicencaPublicidadeList = () => {
             Gerenciamento das licenças de publicidade das viaturas
           </p>
         </div>
-        <Button onClick={() => navigate("/licencas-publicidade/add")}> 
+        <Button onClick={() => navigate("/licencas-publicidade/add")}>
           <Plus className="mr-2 h-4 w-4" /> Nova Licença
         </Button>
       </div>
@@ -130,20 +204,20 @@ const LicencaPublicidadeList = () => {
               <TableRow>
                 <TableHead>Número</TableHead>
                 <TableHead>Viatura</TableHead>
-                <TableHead>Data de Início</TableHead>
-                <TableHead>Data de Fim</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Data de Emissão</TableHead>
+                <TableHead>Data de Validade</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {licencasMock.map((licenca) => (
+              {licencas.map((licenca) => (
                 <TableRow key={licenca.id}>
-                  <TableCell className="font-medium">{licenca.numero}</TableCell>
+                  <TableCell className="font-medium">{licenca.licencanumero}</TableCell>
                   <TableCell>{licenca.viatura}</TableCell>
-                  <TableCell>{new Date(licenca.dataInicio).toLocaleDateString("pt-PT")}</TableCell>
-                  <TableCell>{new Date(licenca.dataFim).toLocaleDateString("pt-PT")}</TableCell>
-                  <TableCell>{getStatusBadge(licenca.status)}</TableCell>
+                  <TableCell>{new Date(licenca.dataemissao).toLocaleDateString("pt-PT")}</TableCell>
+                  <TableCell>{new Date(licenca.datavencimento).toLocaleDateString("pt-PT")}</TableCell>
+                  <TableCell>{getStatusBadge(licenca.licencastatus)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -174,7 +248,6 @@ const LicencaPublicidadeList = () => {
         </CardContent>
       </Card>
 
-      {/* Diálogo de exclusão */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
@@ -190,7 +263,6 @@ const LicencaPublicidadeList = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de detalhes */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         {selectedLicenca && (
           <DialogContent className="max-w-md">
@@ -204,35 +276,50 @@ const LicencaPublicidadeList = () => {
                   <BadgePercent className="h-6 w-6 text-primary" />
                 </div>
               </div>
-              <div className={`p-2 rounded ${selectedLicenca.status === "válido" ? "bg-green-100 text-green-800 border-green-200" : selectedLicenca.status === "a_vencer" ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-red-100 text-red-800 border-red-200"}`}>
-                <p className="text-sm font-medium text-center capitalize">{selectedLicenca.status.replace("_", " ")}</p>
+              <div className={`p-2 rounded ${selectedLicenca.licencastatus === "válido" ? "bg-green-100 text-green-800 border-green-200" : selectedLicenca.licencastatus === "a_vencer" ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-red-100 text-red-800 border-red-200"}`}>
+                <p className="text-sm font-medium text-center capitalize">{selectedLicenca.licencastatus.replace("_", " ")}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Número</p>
-                  <p className="text-sm font-medium">{selectedLicenca.numero}</p>
+                  <p className="text-sm font-medium">{selectedLicenca.licencanumero}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Entidade Emissora</p>
-                  <p className="text-sm font-medium">{selectedLicenca.entidadeEmissora}</p>
+                  <p className="text-sm text-muted-foreground">Viatura</p>
+                  <p className="text-sm font-medium">{selectedLicenca.viatura}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Data de Início</p>
-                  <p className="text-sm font-medium">{new Date(selectedLicenca.dataInicio).toLocaleDateString("pt-PT")}</p>
+                  <p className="text-sm text-muted-foreground">Data de Emissão</p>
+                  <p className="text-sm font-medium">{new Date(selectedLicenca.dataemissao).toLocaleDateString("pt-PT")}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Data de Fim</p>
-                  <p className="text-sm font-medium">{new Date(selectedLicenca.dataFim).toLocaleDateString("pt-PT")}</p>
+                  <p className="text-sm text-muted-foreground">Data de Validade</p>
+                  <p className="text-sm font-medium">{new Date(selectedLicenca.datavencimento).toLocaleDateString("pt-PT")}</p>
                 </div>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Viatura</p>
-                <p className="text-sm font-medium">{selectedLicenca.viatura}</p>
+                <div>
+                  <p className="text-sm text-muted-foreground">Descrição</p>
+                  <p className="text-sm font-medium">{selectedLicenca.descricao}</p>
+                </div>
+                <div>
+                  {/* Documento (PDF ou imagem) */}
+                  {selectedLicenca.signedUrl && (
+                    <div className="mt-4">
+                      <p className="text-sm text-muted-foreground mb-2">Documento Anexado:</p>
+                      <a
+                        href={selectedLicenca.signedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline text-sm font-medium"
+                      >
+                        Visualizar documento em anexo
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>Fechar</Button>
-              <Button onClick={() => navigate(`/licencas-publicidade/edit/${selectedLicenca.id}`)}>Editar</Button>
             </DialogFooter>
           </DialogContent>
         )}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, Edit, Trash, Plus, ChevronDown, Car } from "lucide-react";
+import { EyeIcon, Edit, Trash, Plus, ChevronDown, Car, Fuel } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -75,10 +75,7 @@ const ViaturaDetails = ({
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Fechar
-        </Button>
-        <Button onClick={() => {}}>Editar</Button>
+        <Button variant="outline" onClick={onClose}>Fechar</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -149,9 +146,14 @@ const ViaturasList = () => {
           <h2 className="text-3xl font-bold tracking-tight">Viaturas</h2>
           <p className="text-muted-foreground">Lista de viaturas cadastradas</p>
         </div>
-        <Button onClick={() => navigate("/viaturas/add")}>
-          <Plus className="mr-2 h-4 w-4" /> Nova Viatura
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="destructive" onClick={() => navigate("/viaturas/abastecer/add")}>
+            <Fuel className="mr-2 h-4 w-4" /> Novo Abastecimento
+          </Button>
+          <Button onClick={() => navigate("/viaturas/add")}>
+            <Plus className="mr-2 h-4 w-4" /> Nova Viatura
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -192,20 +194,15 @@ const ViaturasList = () => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => viewDetails(viatura)}>
-                          <EyeIcon className="mr-2 h-4 w-4" />
-                          Ver detalhes
-                        </DropdownMenuItem>
+                          <EyeIcon className="mr-2 h-4 w-4" />Ver detalhes</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate(`/viaturas/edit/${viatura.viaturaid}`)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
+                          <Edit className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDelete(viatura.viaturaid)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                          className="text-destructive focus:text-destructive">
+                            <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/viaturas/abastecer/detalhe/${viatura.viaturaid}`)}>
+                          <Fuel className="mr-2 h-4 w-4" />Detalhe Abastecimento</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

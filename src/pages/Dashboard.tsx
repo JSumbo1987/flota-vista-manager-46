@@ -1,20 +1,21 @@
-
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Car, Calendar, Users, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
 
-const StatCard = ({ 
-  icon: Icon, 
-  title, 
-  value, 
+const StatCard = ({
+  icon: Icon,
+  title,
+  value,
   description,
   onClick
-}: { 
-  icon: React.ElementType; 
-  title: string; 
-  value: string; 
+}: {
+  icon: React.ElementType;
+  title: string;
+  value: string;
   description?: string;
   onClick?: () => void;
 }) => (
@@ -30,16 +31,16 @@ const StatCard = ({
   </Card>
 );
 
-const UpcomingItem = ({ 
-  title, 
-  description, 
-  date, 
-  status 
-}: { 
-  title: string; 
-  description: string; 
-  date: string; 
-  status: "pending" | "completed" | "canceled" | "warning" 
+const UpcomingItem = ({
+  title,
+  description,
+  date,
+  status
+}: {
+  title: string;
+  description: string;
+  date: string;
+  status: "pending" | "completed" | "canceled" | "warning";
 }) => {
   const getStatusClass = () => {
     switch (status) {
@@ -66,13 +67,21 @@ const UpcomingItem = ({
   );
 };
 
-const LicenseAlert = ({ vehicle, license, expiresIn }: { vehicle: string; license: string; expiresIn: number }) => (
+const LicenseAlert = ({
+  vehicle,
+  license,
+  expiresIn
+}: {
+  vehicle: string;
+  license: string;
+  expiresIn: number;
+}) => (
   <div className="flex items-center gap-3 p-3 border rounded-md bg-yellow-50 border-yellow-200 mb-2">
     <AlertTriangle className="h-5 w-5 text-yellow-500" />
     <div>
       <p className="text-sm font-medium">{vehicle}</p>
       <p className="text-xs text-muted-foreground">
-        {license} expira em {expiresIn} {expiresIn === 1 ? "dia" : "dias"}
+        Licença nrº {license}  expira em {expiresIn} {expiresIn === 1 ? "dia" : "dias"}
       </p>
     </div>
   </div>
@@ -81,13 +90,267 @@ const LicenseAlert = ({ vehicle, license, expiresIn }: { vehicle: string; licens
 const Dashboard = () => {
   const navigate = useNavigate();
 
+  // States
+  const [totalViaturas, setTotalViaturas] = useState(0);
+  const [funcionarios, setFuncionarios] = useState(0);
+  const [motoristasDisponiveis, setMotoristasDisponiveis] = useState(0);
+  const [agendamentosPendentes, setAgendamentosPendentes] = useState<number>(0);
+  const [agendamentosHoje, setAgendamentosHoje] = useState<number>(0);
+  const [licencasVencer, setLicencasVencer] = useState<number>(0);
+  const [licencasPublicidadeVencer, setLicencasPublicidadeVencer] = useState<number>(0);
+  const [licencasAlertList, setLicencasAlertList] = useState<
+    { vehicle: string; license: string; expiresIn: number }[]
+  >([]);
+  const [licencasPublicidadeAlertList, setLicencasPublicidadeAlertList] = useState<
+    { vehicle: string; license: string; expiresIn: number }[]
+  >([]);
+  const [proximosAgendamentos, setProximosAgendamentos] = useState<
+    { id: string; title: string; description: string; date: string; status: "Pendente" | "Concluido" | "Cancelado" | "warning" }[]
+  >([]);
+  const [ultimosServicos, setUltimosServicos] = useState<
+    { id: string; title: string; description: string; date: string; status: "Pendente" | "Concluido" | "Cancelado" | "warning" }[]
+  >([]);
+
+  useEffect(() => {
+    async function fetchStats() {
+      // Total de Viaturas
+      const { count: viaturasCount, error: viaturasError } = await supabase
+        .from("tblviaturas")
+        .select("*", { count: "exact", head: true });
+      if (!viaturasError) setTotalViaturas(viaturasCount || 0);
+
+      // Buscar funcionários e motoristas disponíveis
+      const { data: funcionariosData, error: funcionariosError } = await supabase
+      .from("tblfuncionarios")
+      .select("funcionarioid, funcaotipoid, estado");
+
+      if (funcionariosError) {
+      console.error("Erro ao buscar funcionários:", funcionariosError);
+      } else if (funcionariosData) {
+      setFuncionarios(funcionariosData.length);
+
+      // Filtrar motoristas disponíveis (funcaotipoid contém "motorista" e estado é "Activo")
+      const motoristasDisponiveisCount = funcionariosData.filter(f =>
+        typeof f.funcaotipoid === "string" &&
+        f.funcaotipoid.toLowerCase().includes("motorista") &&
+        f.estado?.toLowerCase() === "activo"
+      ).length;
+
+      setMotoristasDisponiveis(motoristasDisponiveisCount);
+      }
+
+
+      // Buscar agendamentos pendentes e contagem dos que são para hoje
+      const hoje = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+      const { data: agendamentosData, error: agendamentosError } = await supabase
+        .from("tblagendamentoservico")
+        .select(`
+          *,
+          tbltipoassistencia:tipoid(id,nome),
+          tblviaturas:viaturaid(viaturaid,viaturamarca, viaturamodelo,viaturamatricula)
+        `)
+        .eq("status", "Pendente");
+
+      if (agendamentosError) {
+        console.error("Erro ao buscar agendamentos:", agendamentosError);
+      } else if (agendamentosData) {
+        setAgendamentosPendentes(agendamentosData.length);
+
+        // Contar agendamentos para hoje (dataagendada começa com yyyy-mm-dd)
+        const agendamentosHojeCount = agendamentosData.filter(a =>
+          a.dataagendada?.startsWith(hoje)
+        ).length;
+        setAgendamentosHoje(agendamentosHojeCount);
+
+        // Mapear os 5 próximos agendamentos para exibição
+        const proximos = agendamentosData.slice(0, 5).map(a => ({
+          id: a.id,
+          title: a.tbltipoassistencia.nome || "Agendamento",
+          description: a.tblviaturas.viaturamarca+" "+a.tblviaturas.viaturamodelo+" - "+a.tblviaturas?.viaturamatricula || "", // ajuste para usar dados da relação
+          date: new Date(a.dataagendada).toLocaleDateString("pt-BR"),
+          status: "pendente" as const
+        }));
+
+        setProximosAgendamentos(proximos);
+      }
+
+
+      // Buscar licenças a vencer (exemplo para tbllicencatransportacao)
+      const hojes = new Date();
+      const trintaDiasDepois = new Date();
+      trintaDiasDepois.setDate(hojes.getDate() + 30);
+
+      const { data: licencasData, error: licencasError } = await supabase
+        .from("tbllicencatransportacao")
+        .select("*")
+        .gte("datavencimento", hojes.toISOString().slice(0, 10))
+        .lte("datavencimento", trintaDiasDepois.toISOString().slice(0, 10))
+        .order("datavencimento", { ascending: true });
+
+      if (licencasError) {
+        console.error("Erro ao buscar licenças a vencer:", licencasError);
+      } else if (licencasData) {
+        setLicencasVencer(licencasData.length);
+
+        const alertas = licencasData.map(licenca => {
+          const diasParaVencer = Math.ceil(
+            (new Date(licenca.datavencimento).getTime() - hojes.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          return {
+            vehicle: licenca.veiculo,
+            license: licenca.tipo_licenca,
+            expiresIn: diasParaVencer,
+          };
+        });
+
+        setLicencasAlertList(alertas);
+      };
+
+      // Buscar licenças de publicidade a vencer
+      const hojeP = new Date();
+      const dataLimite = new Date();
+      dataLimite.setDate(hojeP.getDate() + 30);
+
+      try {
+        const { data: licencasData, error: licencasError } = await supabase
+          .from("tbllicencapublicidade")
+          .select(`*, tblviaturas:viaturaid(viaturaid, viaturamarca, viaturamodelo, viaturamatricula)`)
+          .gte("datavencimento", hojeP.toISOString().slice(0, 10))
+          .lte("datavencimento", dataLimite.toISOString().slice(0, 10))
+          .order("datavencimento", { ascending: true });
+
+        if (licencasError) {
+          console.error("Erro ao buscar licenças de publicidade a vencer:", licencasError);
+          return;
+        }
+
+        if (licencasData) {
+          setLicencasPublicidadeVencer(licencasData.length);
+
+          const alertas = licencasData.map(licenca => {
+            const diasParaVencer = Math.ceil(
+              (new Date(licenca.datavencimento).getTime() - hojeP.getTime()) / (1000 * 60 * 60 * 24)
+            );
+            
+            return {
+              vehicle: licenca.tblviaturas.viaturamarca+" "+licenca.tblviaturas.viaturamodelo+" - "+licenca.tblviaturas.viaturamatricula,
+              license: licenca.licencanumero,
+              expiresIn: diasParaVencer,
+            };
+          });
+
+          setLicencasPublicidadeAlertList(alertas);
+        }
+      } catch (error) {
+        console.error("Erro inesperado ao buscar licenças:", error);
+      };
+
+      // Buscar últimos serviços realizados
+      try {
+        const { data: servicosData, error: servicosError } = await supabase
+          .from("tblservicos") // Agora usando tblservicos
+          .select(`*,
+            tbltipoassistencia:tipoid(id, nome),
+            tblviaturas:viaturaid(viaturaid, viaturamarca, viaturamodelo, viaturamatricula)`)
+          .order("dataservico", { ascending: false }) // Corrigido: assumindo que o campo é dataservico
+          .limit(5);
+
+        if (servicosError) {
+          console.error("Erro ao buscar últimos serviços realizados:", servicosError);
+          return;
+        }
+
+        if (servicosData) {
+          const ultimosServicos = servicosData.map(servico => ({
+            id: servico.id,
+            title: servico.tblviaturas.viaturamarca+" "+servico.tblviaturas.viaturamodelo+" - "+servico.tblviaturas.viaturamatricula+
+            ` # Serviço: ${servico.tbltipoassistencia?.nome}`, // Alterado para o contexto de serviços
+            description: servico.observacoes || "", // Assumindo que há um campo descricao
+            date: new Date(servico.dataservico).toLocaleDateString(), // Assumindo dataservico
+            status: servico.status as "pending" | "completed" | "canceled" | "warning",
+          }));
+
+          setUltimosServicos(ultimosServicos);
+        }
+      } catch (error) {
+        console.error("Erro inesperado ao buscar serviços:", error);
+      }
+    }//fim
+
+    fetchStats();
+  }, []);
+
+    const [custos, setCustos] = useState({ manutencao: 0, reparos: 0, combustivel: 0});
+  
+    useEffect(() => {
+      const fetchCustos = async () => {
+        const hoje = new Date();
+        
+        const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
+        .toISOString().slice(0, 10); // yyyy-MM-dd
+
+        const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)
+        .toISOString().slice(0, 10); 
+  
+        try {
+          // Serviços de Manutenção e Reparos
+          const { data: servicosData } = await supabase
+            .from("tblservicos")
+            .select(`*, tblcategoriaassistencia:categoriaid(id, nome)`)
+            .gte("dataservico", primeiroDiaMes)
+            .lte("dataservico", ultimoDiaMes);
+  
+          let manutencao = 0;
+          let reparos = 0;
+
+          if (servicosData) {
+            servicosData.forEach((s) => {
+              if (s.tblcategoriaassistencia?.nome.toLowerCase().includes("preventiva")) {
+                manutencao += Number(s.custo || 0);
+              } else {
+                reparos += Number(s.custo || 0);
+              }
+            });
+          }
+  
+          // Custos com Combustível
+          const { data: combustivelData } = await supabase
+            .from("tblabastecimentos")
+            .select("valortotal")
+            .gte("dataabastecimento", primeiroDiaMes)
+            .lte("dataabastecimento", ultimoDiaMes);
+  
+          const combustivel = combustivelData?.reduce((acc, curr) => acc + (curr.valortotal || 0), 0) || 0;
+  
+          // Atualizar o estado
+          setCustos({
+            manutencao,
+            reparos,
+            combustivel,
+          });
+  
+        } catch (error) {
+          console.error("Erro ao buscar custos:", error);
+        }
+      };
+  
+      fetchCustos();
+    }, []);
+  
+    const total = custos.manutencao + custos.reparos + custos.combustivel;
+  
+    const calcularPercentual = (valor: number) => {
+      if (total === 0) return 0;
+      return (valor / total) * 100;
+    };
+
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground">
-          Visão geral da gestão de viaturas e serviços.
-        </p>
+        <p className="text-muted-foreground">Visão geral da gestão de viaturas e serviços.</p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
@@ -95,34 +358,34 @@ const Dashboard = () => {
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="analytics">Análises</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard 
-              icon={Car} 
-              title="Total de Viaturas" 
-              value="24" 
+            <StatCard
+              icon={Car}
+              title="Total de Viaturas"
+              value={totalViaturas.toString()}
               description="+2 este mês"
               onClick={() => navigate("/viaturas")}
             />
-            <StatCard 
-              icon={Users} 
-              title="Funcionários" 
-              value="142" 
-              description="6 motoristas disponíveis"
+            <StatCard
+              icon={Users}
+              title="Funcionários"
+              value={funcionarios.toString()}
+              description={`${motoristasDisponiveis} motoristas disponíveis`}
               onClick={() => navigate("/funcionarios")}
             />
-            <StatCard 
-              icon={Calendar} 
-              title="Agendamentos Pendentes" 
-              value="8" 
-              description="3 para hoje"
+            <StatCard
+              icon={Calendar}
+              title="Agendamentos Pendentes"
+              value={agendamentosPendentes.toString()}
+              description={`${agendamentosHoje} para hoje`}
               onClick={() => navigate("/agendamentos")}
             />
-            <StatCard 
-              icon={AlertTriangle} 
-              title="Licenças a Vencer" 
-              value="5" 
+            <StatCard
+              icon={AlertTriangle}
+              title="Licenças Transporte a Vencer"
+              value={licencasVencer.toString()}
               description="Próximos 30 dias"
               onClick={() => navigate("/licenca-transporte")}
             />
@@ -132,66 +395,58 @@ const Dashboard = () => {
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Custos Mensais de Serviços</CardTitle>
-                <CardDescription>
-                  Análise de custos de manutenção e serviços
-                </CardDescription>
+                <CardDescription>Análise de custos de manutenção e serviços</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  {/* Manutenção Preventiva */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="text-sm">Manutenção Preventiva</div>
-                      <div className="text-sm font-medium">$12,500</div>
+                      <div className="text-sm font-medium">
+                        {custos.manutencao.toLocaleString("pt-BR", { style: "currency", currency: "AOA" })}
+                      </div>
                     </div>
-                    <Progress value={45} className="h-2" />
+                    <Progress value={calcularPercentual(custos.manutencao)} className="h-2" />
                   </div>
+                  {/* Reparos */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="text-sm">Reparos</div>
-                      <div className="text-sm font-medium">$8,320</div>
+                      <div className="text-sm font-medium">
+                        {custos.reparos.toLocaleString("pt-BR", { style: "currency", currency: "AOA" })}
+                      </div>
                     </div>
-                    <Progress value={30} className="h-2" />
+                    <Progress value={calcularPercentual(custos.reparos)} className="h-2" />
                   </div>
+                  {/* Combustível */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="text-sm">Combustível</div>
-                      <div className="text-sm font-medium">$5,680</div>
+                      <div className="text-sm font-medium">
+                        {custos.combustivel.toLocaleString("pt-BR", { style: "currency", currency: "AOA" })}
+                      </div>
                     </div>
-                    <Progress value={20} className="h-2" />
+                    <Progress value={calcularPercentual(custos.combustivel)} className="h-2" />
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm">Licenças e Documentação</div>
-                      <div className="text-sm font-medium">$1,250</div>
-                    </div>
-                    <Progress value={5} className="h-2" />
-                  </div>
+                  
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Licenças a Vencer</CardTitle>
+                <CardTitle>Licenças Publicidade a Vencer</CardTitle>
                 <CardDescription>Próximos 30 dias</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <LicenseAlert 
-                    vehicle="Toyota Hilux (ABC-1234)" 
-                    license="Licença de Transporte" 
-                    expiresIn={5} 
-                  />
-                  <LicenseAlert 
-                    vehicle="Ford Ranger (XYZ-5678)" 
-                    license="Certificado de Inspeção" 
-                    expiresIn={8} 
-                  />
-                  <LicenseAlert 
-                    vehicle="Mitsubishi L200 (DEF-9012)" 
-                    license="Licença de Publicidade" 
-                    expiresIn={12} 
-                  />
+                  {licencasPublicidadeAlertList.length === 0 && (
+                    <p className="text-muted-foreground">Nenhuma licença próxima do vencimento.</p>
+                  )}
+                  {licencasPublicidadeAlertList.map(({ vehicle, license, expiresIn }, idx) => (
+                    <LicenseAlert key={idx} vehicle={vehicle} license={license} expiresIn={expiresIn} />
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -205,24 +460,12 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <UpcomingItem
-                    title="Troca de Óleo"
-                    description="Toyota Hilux (ABC-1234) - Oficina Central"
-                    date="Hoje, 14:00"
-                    status="pending"
-                  />
-                  <UpcomingItem
-                    title="Revisão dos 30.000 km"
-                    description="Ford Ranger (XYZ-5678) - Concessionária Ford"
-                    date="Amanhã, 09:30"
-                    status="pending"
-                  />
-                  <UpcomingItem
-                    title="Inspeção Semestral"
-                    description="Mitsubishi L200 (DEF-9012) - Centro de Inspeção"
-                    date="23 Abr, 10:00"
-                    status="warning"
-                  />
+                  {proximosAgendamentos.length === 0 && (
+                    <p className="text-muted-foreground">Nenhum agendamento pendente.</p>
+                  )}
+                  {proximosAgendamentos.map(({ id, title, description, date, status }) => (
+                    <UpcomingItem key={id} title={title} description={description} date={date} status={status} />
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -234,42 +477,18 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <UpcomingItem
-                    title="Troca de Pneus"
-                    description="Volkswagen Amarok (GHI-3456) - R$ 2.800"
-                    date="Ontem, 15:30"
-                    status="completed"
-                  />
-                  <UpcomingItem
-                    title="Substituição de Bateria"
-                    description="Toyota Hilux (ABC-1234) - R$ 650"
-                    date="20 Abr, 11:45"
-                    status="completed"
-                  />
-                  <UpcomingItem
-                    title="Reparo no Sistema Elétrico"
-                    description="Chevrolet S10 (JKL-7890) - R$ 1.200"
-                    date="18 Abr, 14:15"
-                    status="completed"
-                  />
+                  {ultimosServicos.length === 0 && <p className="text-muted-foreground">Nenhum serviço registrado.</p>}
+                  {ultimosServicos.map(({ id, title, description, date, status }) => (
+                    <UpcomingItem key={id} title={title} description={description} date={date} status={status} />
+                  ))}
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
-        
-        <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Análise de Custos e Desempenho</CardTitle>
-              <CardDescription>
-                Dados detalhados sobre custos, manutenção e utilização da frota
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-md">
-              <p className="text-muted-foreground">Dados de análise serão carregados do Supabase</p>
-            </CardContent>
-          </Card>
+
+        <TabsContent value="analytics">
+          <div className="p-4 text-center text-muted-foreground">Análises detalhadas ainda não implementadas.</div>
         </TabsContent>
       </Tabs>
     </div>
@@ -277,3 +496,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+

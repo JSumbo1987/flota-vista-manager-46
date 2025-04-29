@@ -29,6 +29,18 @@ import AddChecklist from "./pages/CheckList/AddCheckList";
 import ChecklistDetails from "./pages/CheckList/ChecklistDetails";
 import EditChecklist from "./pages/CheckList/EditCheckList";
 import EditCertificado from "./pages/Certificados/EditCertificado";
+import AddLicencaPublicidade from "./pages/LicencasPublicidades/AddLicencasPublicidade";
+import EditLicencaPublicidade from "./pages/LicencasPublicidades/EditLicencasPublicidade";
+import AddLicencaTransporte from "./pages/LicencasTransportes/AddLicencasTransporte";
+import EditLicencaTransporte from "./pages/LicencasTransportes/EditLicencasTransporte";
+import AlterarSenhaUser from "./pages/Auth/AlterarSenhaUser";
+import ConfirmarEmailUser from "./pages/Auth/ConfirmarEmailUser";
+import CriarContaAcesso from "./pages/Funcionarios/CriarContaAcesso";
+import VisualizarArquivosFuncionario from "./pages/Funcionarios/VisualizarArquivosFuncionario";
+import UsuariosList from "./pages/Usuarios/UsuariosList";
+import AddAbastecimento from "./pages/Viaturas/AddAbastecimento";
+import DetalhesAbastecimento from "./pages/Viaturas/DetalheAbastecimento";
+import PerfilUsuario from "./pages/Usuarios/PerfilUsuario";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +116,22 @@ const App = () => (
                 </MainLayout>
               }
             />
+            <Route
+              path="/viaturas/abastecer/add"
+              element={
+                <MainLayout>
+                  <AddAbastecimento />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/viaturas/abastecer/detalhe/:viaturaId"
+              element={
+                <MainLayout>
+                  <DetalhesAbastecimento />
+                </MainLayout>
+              }
+            />
 
             {/* Funcionários */}
             <Route
@@ -127,6 +155,22 @@ const App = () => (
               element={
                 <MainLayout>
                   <EditarFuncionario />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/funcionarios/documentos/:funcionarioid"
+              element={
+                <MainLayout>
+                  <VisualizarArquivosFuncionario />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/funcionarios/criar-conta/:funcionarioid"
+              element={
+                <MainLayout>
+                  <CriarContaAcesso />
                 </MainLayout>
               }
             />
@@ -221,6 +265,22 @@ const App = () => (
               }
             />
             <Route
+              path="/licencas-transporte/add"
+              element={
+                <MainLayout>
+                  <AddLicencaTransporte />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/licencas-transporte/edit/:id"
+              element={
+                <MainLayout>
+                  <EditLicencaTransporte />
+                </MainLayout>
+              }
+            />
+            <Route
               path="/licenca-publicidade"
               element={
                 <MainLayout>
@@ -229,13 +289,42 @@ const App = () => (
               }
             />
             <Route
+              path="/licencas-publicidade/add"
+              element={
+                <MainLayout>
+                  <AddLicencaPublicidade />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/licencas-publicidade/edit/:id"
+              element={
+                <MainLayout>
+                  <EditLicencaPublicidade />
+                </MainLayout>
+              }
+            />
+            <Route
               path="/usuarios"
               element={
                 <MainLayout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold mb-4">Gestão de Usuários</h2>
-                    <p>Página em implementação</p>
-                  </div>
+                  <UsuariosList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/usuarios/alterar-senha/:userid"
+              element={
+                <MainLayout>
+                  <AlterarSenhaUser />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/usuarios/confirmar-email"
+              element={
+                <MainLayout>
+                  <ConfirmarEmailUser />
                 </MainLayout>
               }
             />
@@ -262,13 +351,10 @@ const App = () => (
               }
             />
             <Route
-              path="/perfil"
+              path="/perfil/:id"
               element={
                 <MainLayout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold mb-4">Meu Perfil</h2>
-                    <p>Página em implementação</p>
-                  </div>
+                  <PerfilUsuario />
                 </MainLayout>
               }
             />

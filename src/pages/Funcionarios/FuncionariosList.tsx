@@ -134,12 +134,7 @@ const FuncionarioDetails = ({ funcionario, onClose }: FuncionarioDetailsProps) =
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Fechar
-        </Button>
-        <Button onClick={() => { /* aqui você pode adicionar a lógica de editar */ }}>
-          Editar
-        </Button>
+        <Button variant="outline" onClick={onClose}>Fechar</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -182,28 +177,81 @@ const FuncionariosList = () => {
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDeleteFuncionario = async () => {
     if (!funcionarioToDelete) return;
-
-    const { error } = await supabase
-      .from("tblfuncionarios")
-      .delete()
-      .eq("funcionarioid", funcionarioToDelete);
-
-    if (error) {
+  
+    try {
+      let possuiRelacoes = false;
+  
+      // 1. Verificar se existe registro em tblusuariofuncionario
+      const { data: usuarioFuncionario, error: errorUsuarioFuncionario } = await supabase
+        .from("tblusuariofuncionario")
+        .select("userid")
+        .eq("funcionarioid", funcionarioToDelete)
+        .single();
+  
+      if (errorUsuarioFuncionario && errorUsuarioFuncionario.code !== "PGRST116") {
+        throw new Error(errorUsuarioFuncionario.message);
+      }
+  
+      // 2. Verificar se existe registro em tblchecklist (motoristaid)
+      const { data: checklists, error: errorChecklists } = await supabase
+        .from("tblchecklist")
+        .select("id")
+        .eq("motoristaid", funcionarioToDelete);
+  
+      if (errorChecklists) {
+        throw new Error(errorChecklists.message);
+      }
+  
+      // 3. Verificar se existe registro em tblfuncionarioviatura
+      const { data: funcionarioViaturas, error: errorFuncViatura } = await supabase
+        .from("tblfuncionarioviatura")
+        .select("funcionarioid")
+        .eq("funcionarioid", funcionarioToDelete);
+  
+      if (errorFuncViatura) {
+        throw new Error(errorFuncViatura.message);
+      }
+  
+      // Se existir em qualquer uma das tabelas, sinaliza que tem relações
+      possuiRelacoes =
+        !!usuarioFuncionario || 
+        (checklists && checklists.length > 0) || 
+        (funcionarioViaturas && funcionarioViaturas.length > 0);
+  
+  
+      // Excluir o funcionário
+      const { error: errorDeleteFuncionario } = await supabase
+        .from("tblfuncionarios")
+        .delete()
+        .eq("funcionarioid", funcionarioToDelete);
+  
+      if (errorDeleteFuncionario) {
+        throw new Error(errorDeleteFuncionario.message);
+      }
+  
+      // Atualizar UI
+      setFuncionarios((prev) => prev.filter((f) => f.funcionarioid !== funcionarioToDelete));
+  
       toast({
-        title: "Erro ao excluir",
-        description: error.message,
+        title: "Funcionário excluído",
+        description: "Funcionário e registros relacionados foram removidos com sucesso.",
+      });
+    } catch (err) {
+      console.log(err);
+      toast({
+        title: "Erro ao excluir funcionário",
+        description: err.message || "Erro desconhecido.",
         variant: "destructive",
       });
-    } else {
-      toast({ title: "Funcionário excluído com sucesso." });
-      setFuncionarios((prev) =>
-        prev.filter((f) => f.funcionarioid !== funcionarioToDelete)
-      );
+    } finally {
+      setShowDeleteDialog(false);
     }
-    setShowDeleteDialog(false);
   };
+  
+  
+  
 
   const viewDetails = (funcionario: Funcionario) => {
     setSelectedFuncionario(funcionario);
@@ -229,6 +277,44 @@ const FuncionariosList = () => {
         return <Badge variant="outline">{estado}</Badge>;
     }
   };
+
+  const handleViewArquivos = async (funcionarioId: number) => {
+    const { data, error } = await supabase
+      .storage
+      .from("documentos")
+      .list(`funcionarios/${funcionarioId}`, {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: "name", order: "asc" },
+      });
+  
+    if (error) {
+      toast({
+        title: "Erro ao listar arquivos",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    if (data.length === 0) {
+      toast({
+        title: "Sem arquivos",
+        description: "Nenhum arquivo encontrado para este funcionário.",
+      });
+      return;
+    }
+  
+    // Abrir os arquivos encontrados (simples: abrir o primeiro arquivo)
+    const {publicURL} = supabase
+      .storage
+      .from("documentos")
+      .getPublicUrl(`funcionarios/${funcionarioId}/${data[0].name}`);
+  
+    window.open(publicURL, "_blank");
+  };
+  
+  
 
   return (
     <div className="space-y-4">
@@ -284,19 +370,16 @@ const FuncionariosList = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[160px]">
                           <DropdownMenuItem onClick={() => viewDetails(f)}>
-                            <EyeIcon className="mr-2 h-4 w-4" />
-                            Ver detalhes
-                          </DropdownMenuItem>
+                            <EyeIcon className="mr-2 h-4 w-4" />Ver detalhes</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/funcionarios/documentos/${f.funcionarioid}`)}>
+                            <EyeIcon className="mr-2 h-4 w-4" />Ver arquivos</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate(`/funcionarios/edit/${f.funcionarioid}`)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
+                            <Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/funcionarios/criar-conta/${f.funcionarioid}`)}>
+                            <User2 className="mr-2 h-4 w-4" />Criar conta</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(f.funcionarioid)}
-                           className="text-destructive focus:text-destructive"
-                          >
-                            <Trash className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
+                           className="text-destructive focus:text-destructive">
+                            <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -336,7 +419,7 @@ const FuncionariosList = () => {
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
+            <Button variant="destructive" onClick={confirmDeleteFuncionario}>
               Excluir
             </Button>
           </DialogFooter>

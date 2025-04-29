@@ -100,7 +100,6 @@ const AgendamentoDetails = ({ agendamento, onClose }: { agendamento: Agendamento
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Fechar</Button>
-        <Button onClick={() => {}}>Editar</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -132,7 +131,6 @@ const AgendamentoList = () => {
     };
 
     fetchAgendamentos();
-    console.log('Registos: ',agendamentos);
   }, []);
 
   const handleDelete = (id: number) => {

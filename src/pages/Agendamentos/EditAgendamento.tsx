@@ -29,13 +29,14 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const EditAgendamento = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(true); // Novo: para controlar o loading
   const [userId, setUserId] = useState("");
   const [viaturaId, setViaturaId] = useState("");
   const [tipoId, setTipoId] = useState("");
@@ -47,26 +48,24 @@ const EditAgendamento = () => {
   const [tiposAssistencia, setTiposAssistencia] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const carregarDados = async () => {
       const [{ data: usuarios }, { data: viaturas }, { data: tipos }] = await Promise.all([
         supabase.from("tblusuarios").select("userid, usernome"),
         supabase.from("tblviaturas").select("viaturaid, viaturamarca, viaturamatricula"),
         supabase.from("tbltipoassistencia").select("id, nome"),
       ]);
-
+  
       if (usuarios) setUsuarios(usuarios);
       if (viaturas) setViaturas(viaturas);
       if (tipos) setTiposAssistencia(tipos);
-    };
-
-    const fetchAgendamento = async () => {
-      const { data, error } = await supabase
+  
+      const { data: agendamento, error } = await supabase
         .from("tblagendamentoservico")
         .select("*")
         .eq("id", id)
         .single();
-
-      if (error || !data) {
+  
+      if (error || !agendamento) {
         toast({
           title: "Erro",
           description: "Agendamento não encontrado.",
@@ -75,21 +74,21 @@ const EditAgendamento = () => {
         navigate("/agendamentos");
         return;
       }
-
-      setUserId(data.userid);
-      setViaturaId(data.viaturaid);
-      setTipoId(data.tipoid);
-      setDataAgendada(new Date(data.dataagendada));
-      setStatus(data.status);
+  
+      setUserId(agendamento.userid);
+      setViaturaId(agendamento.viaturaid);
+      setTipoId(agendamento.tipoid);
+      setDataAgendada(agendamento.dataagendada ? new Date(agendamento.dataagendada) : undefined);
+      setStatus(agendamento.status || "Pendente");
     };
-
-    fetchData();
-    fetchAgendamento();
+    setIsLoading(false); 
+    carregarDados();
   }, [id, navigate, toast]);
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(userId,viaturaId, tipoId, dataAgendada);
+    
     if (!userId || !viaturaId || !tipoId || !dataAgendada || !(dataAgendada instanceof Date)) {
       toast({
         title: "Erro de validação",
@@ -109,7 +108,7 @@ const EditAgendamento = () => {
           viaturaid: viaturaId,
           tipoid: tipoId,
           dataagendada: dataAgendada.toISOString(),
-          status,
+          status:status,
         })
         .eq("id", id);
 
@@ -145,6 +144,16 @@ const EditAgendamento = () => {
       </div>
 
       <Card>
+      {isLoading ? (
+          <CardContent className="space-y-4 p-6">
+            {/* Skeleton Loading enquanto carrega */}
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        ) : (
         <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle>Informações do Agendamento</CardTitle>
@@ -249,6 +258,7 @@ const EditAgendamento = () => {
             </Button>
           </CardFooter>
         </form>
+        )}
       </Card>
     </div>
   );

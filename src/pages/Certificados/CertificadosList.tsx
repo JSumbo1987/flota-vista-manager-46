@@ -36,7 +36,7 @@ interface CertificadoDetailsProps {
 }
 
 const CertificadoDetails = ({ certificado, onClose }: CertificadoDetailsProps) => {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   if (!certificado) return null;
 
@@ -224,7 +224,7 @@ const CertificadosList = () => {
       setShowDeleteDialog(false);
       setCertificadoToDelete(null);
       fetchCertificados();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro ao excluir",
         description: error.message || "Erro desconhecido.",

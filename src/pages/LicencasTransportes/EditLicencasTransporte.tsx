@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,44 +16,82 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
-const AddLicencaTransportacao = () => {
+interface Viatura {
+  viaturaid: string;
+  viaturamarca: string;
+  viaturamodelo: string;
+  viaturamatricula: string;
+}
+
+const EditLicencaTransporte = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [viaturas, setViaturas] = useState([]);
-  const [viaturaId, setViaturaId] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [observacao, setObservacao] = useState("");
-  const [proprietario, setProprietario] = useState("");
-  const [dataEmissao, setDataEmissao] = useState<Date | undefined>(new Date());
+  const [viaturas, setViaturas] = useState<Viatura[]>([]);
+  const [viaturaId, setViaturaId] = useState<string>("");
+  const [descricao, setDescricao] = useState<string>("");
+  const [observacao, setObservacao] = useState<string>("");
+  const [proprietario, setProprietario] = useState<string>("");
+  const [dataEmissao, setDataEmissao] = useState<Date | undefined>();
   const [dataVencimento, setDataVencimento] = useState<Date | undefined>();
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [copiaAtual, setCopiaAtual] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchViaturas = async () => {
-      const { data, error } = await supabase
-        .from("tblviaturas")
-        .select("viaturaid, viaturamarca, viaturamodelo, viaturamatricula");
+    const fetchData = async () => {
+      try {
+        const { data: viaturasData, error: viaturasError } = await supabase
+          .from("tblviaturas")
+          .select("viaturaid, viaturamarca, viaturamodelo, viaturamatricula");
 
-      if (error) {
+        if (viaturasError) {
+          throw viaturasError;
+        }
+
+        if (viaturasData) {
+          setViaturas(viaturasData);
+        }
+
+        const { data, error } = await supabase
+          .from("tbllicencatransportacao")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error || !data) {
+          throw error || new Error("Licença não encontrada");
+        }
+
+        setViaturaId(data.viaturaid);
+        setDescricao(data.descricao);
+        setObservacao(data.observacao || "");
+        setProprietario(data.proprietario);
+        setDataEmissao(new Date(data.dataemissao));
+        setDataVencimento(new Date(data.datavencimento));
+        setCopiaAtual(data.copialicencatransporte);
+      } catch (error) {
         toast({
-          title: "Erro ao carregar viaturas",
-          description: error.message,
+          title: "Erro ao carregar dados",
+          description: error.message || "Erro desconhecido.",
           variant: "destructive",
         });
-      } else {
-        setViaturas(data);
+        navigate("/licenca-transporte");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchViaturas();
-  }, [toast]);
+    fetchData();
+  }, [id, navigate, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
@@ -61,13 +99,22 @@ const AddLicencaTransportacao = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const calcularStatusLicenca = (vencimento: Date) => {
+    const hoje = new Date();
+    const diasParaVencer = (vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (vencimento < hoje) return "expirado";
+    if (diasParaVencer <= 30) return "a_vencer";
+    return "válido";
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!viaturaId || !descricao || !proprietario || !dataEmissao || !dataVencimento || !arquivo) {
+    if (!viaturaId || !descricao || !proprietario || !dataEmissao || !dataVencimento) {
       toast({
-        title: "Erro de validação",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos obrigatórios.",
         variant: "destructive",
       });
       return;
@@ -75,55 +122,49 @@ const AddLicencaTransportacao = () => {
 
     setIsSubmitting(true);
 
-    const calcularStatusLicenca = (dataVencimento: Date) => {
-      const hoje = new Date();
-      const diffEmMilissegundos = dataVencimento.getTime() - hoje.getTime();
-      const diasParaVencer = diffEmMilissegundos / (1000 * 60 * 60 * 24);
-
-      if (dataVencimento < hoje) {
-        return "expirado";
-      } else if (diasParaVencer <= 30) {
-        return "a_vencer";
-      } else {
-        return "válido";
-      }
-    };
-    const status = calcularStatusLicenca(new Date(dataVencimento));
-
     try {
-      // 1. Upload do arquivo
-      const filePath = `licencas-transportacao/${Date.now()}-${arquivo.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("documentos")
-        .upload(filePath, arquivo);
+      let filePath = copiaAtual;
 
-      if (uploadError) throw uploadError;
+      if (arquivo) {
+        filePath = `licencas-transportacao/${Date.now()}-${arquivo.name}`;
 
-      // 2. Inserção no banco
-      const { error: insertError } = await supabase.from("tbllicencatransportacao").insert([
-        {
+        const { error: uploadError } = await supabase.storage
+          .from("documentos")
+          .upload(filePath, arquivo, {
+            upsert: true,
+          });
+
+        if (uploadError) throw uploadError;
+      }
+
+      const status = calcularStatusLicenca(dataVencimento);
+
+      const { error: updateError } = await supabase
+        .from("tbllicencatransportacao")
+        .update({
           viaturaid: viaturaId,
-          descricao: descricao,
-          observacao: observacao,
-          proprietario: proprietario,
-          dataemissao: format(dataEmissao, "yyyy/MM/dd"),
-          datavencimento: format(dataVencimento, "yyyy/MM/dd"),
+          descricao,
+          observacao,
+          proprietario,
+          dataemissao: format(dataEmissao, "yyyy-MM-dd"),
+          datavencimento: format(dataVencimento, "yyyy-MM-dd"),
           copialicencatransporte: filePath,
           licencastatus: status,
-        }
-      ]);
+        })
+        .eq("id", id);
 
-      if (insertError) throw insertError;
+      if (updateError) throw updateError;
 
       toast({
-        title: "Licença registrada",
-        description: "A licença de transportação foi registrada com sucesso.",
+        title: "Sucesso",
+        description: "Licença atualizada com sucesso!",
       });
+
       navigate("/licenca-transporte");
     } catch (error) {
       toast({
-        title: "Erro ao registrar",
-        description: error.message || "Erro desconhecido",
+        title: "Erro ao atualizar",
+        description: error.message || "Erro desconhecido.",
         variant: "destructive",
       });
     } finally {
@@ -131,16 +172,25 @@ const AddLicencaTransportacao = () => {
     }
   };
 
+  if (isLoading) {
+    return <p>Carregando...</p>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/licenca-transporte")} className="mr-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/licenca-transporte")}
+          className="mr-2"
+        >
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Adicionar Licença de Transportação</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Editar Licença de Transportação</h2>
           <p className="text-muted-foreground">
-            Registre uma nova licença de transportação vinculada a uma viatura
+            Atualize os dados da licença de transportação
           </p>
         </div>
       </div>
@@ -149,19 +199,21 @@ const AddLicencaTransportacao = () => {
         <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle>Informações da Licença</CardTitle>
-            <CardDescription>Preencha os dados da licença de transportação</CardDescription>
+            <CardDescription>Preencha os campos abaixo</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Viatura */}
               <div className="space-y-2">
                 <Label>Viatura*</Label>
-                <Select value={String(viaturaId)} onValueChange={(val) => setViaturaId(val)}>
+                <Select value={viaturaId} onValueChange={setViaturaId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma viatura" />
                   </SelectTrigger>
                   <SelectContent>
                     {viaturas.map((v) => (
-                      <SelectItem key={v.viaturaid} value={String(v.viaturaid)}>
+                      <SelectItem key={v.viaturaid} value={v.viaturaid}>
                         {v.viaturamarca} {v.viaturamodelo} ({v.viaturamatricula})
                       </SelectItem>
                     ))}
@@ -169,6 +221,7 @@ const AddLicencaTransportacao = () => {
                 </Select>
               </div>
 
+              {/* Data Emissão */}
               <div className="space-y-2">
                 <Label>Data de Emissão*</Label>
                 <Popover>
@@ -181,7 +234,7 @@ const AddLicencaTransportacao = () => {
                       {dataEmissao ? format(dataEmissao, "dd/MM/yyyy") : "Selecione uma data"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="p-0 w-auto">
+                  <PopoverContent align="start" className="p-0">
                     <CalendarComponent
                       mode="single"
                       selected={dataEmissao}
@@ -192,6 +245,7 @@ const AddLicencaTransportacao = () => {
                 </Popover>
               </div>
 
+              {/* Data Vencimento */}
               <div className="space-y-2">
                 <Label>Data de Vencimento*</Label>
                 <Popover>
@@ -204,7 +258,7 @@ const AddLicencaTransportacao = () => {
                       {dataVencimento ? format(dataVencimento, "dd/MM/yyyy") : "Selecione uma data"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="p-0 w-auto">
+                  <PopoverContent align="start" className="p-0">
                     <CalendarComponent
                       mode="single"
                       selected={dataVencimento}
@@ -216,58 +270,65 @@ const AddLicencaTransportacao = () => {
                 </Popover>
               </div>
 
+              {/* Descrição */}
               <div className="space-y-2">
-                <Label htmlFor="descricao">Descrição*</Label>
+                <Label>Descrição*</Label>
                 <Input
                   id="descricao"
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
-                  placeholder="Ex: Licença para transporte de cargas"
                   required
                 />
               </div>
 
+              {/* Proprietário */}
               <div className="space-y-2">
-                <Label htmlFor="proprietario">Proprietário*</Label>
+                <Label>Proprietário*</Label>
                 <Input
                   id="proprietario"
                   value={proprietario}
                   onChange={(e) => setProprietario(e.target.value)}
-                  placeholder="Ex: Nome do proprietário"
                   required
                 />
               </div>
 
+              {/* Observação */}
               <div className="space-y-2">
-                <Label htmlFor="observacao">Observação</Label>
+                <Label>Observação</Label>
                 <Input
                   id="observacao"
                   value={observacao}
                   onChange={(e) => setObservacao(e.target.value)}
-                  placeholder="Ex: Observações adicionais"
                 />
               </div>
 
+              {/* Arquivo */}
               <div className="space-y-2">
-                <Label htmlFor="upload">Cópia da Licença*</Label>
+                <Label>Cópia da Licença</Label>
                 <Input
-                  id="upload"
                   type="file"
                   accept="application/pdf,image/*"
                   onChange={handleFileChange}
-                  required
                 />
+                {copiaAtual && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Cópia da licença actual: {copiaAtual.split("/").pop()}
+                  </p>
+                )}
               </div>
+
             </div>
           </CardContent>
-
           <CardFooter className="flex justify-between">
-            <Button type="button" variant="outline" onClick={() => navigate("/licenca-transporte")}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/licenca-transporte")}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar Licença"
-              }
+              {isSubmitting ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </CardFooter>
         </form>
@@ -276,4 +337,5 @@ const AddLicencaTransportacao = () => {
   );
 };
 
-export default AddLicencaTransportacao;
+export default EditLicencaTransporte;
+

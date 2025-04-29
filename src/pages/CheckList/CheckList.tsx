@@ -159,7 +159,7 @@ const ChecklistDetails = ({
               <TableHeader>
                 <TableRow>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Estado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
