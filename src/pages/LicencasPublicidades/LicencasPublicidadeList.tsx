@@ -243,6 +243,13 @@ const LicencaPublicidadeList = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {licencas.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    Nenhuma licença de publicidade encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

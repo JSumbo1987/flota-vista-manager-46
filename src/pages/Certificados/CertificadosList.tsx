@@ -315,6 +315,13 @@ const CertificadosList = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {certificados.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    Nenhum certificado de inspeção encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

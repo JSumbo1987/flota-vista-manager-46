@@ -92,6 +92,7 @@ const Dashboard = () => {
 
   // States
   const [totalViaturas, setTotalViaturas] = useState(0);
+  const [totalViaturasAtribuidas, setTotalViaturasAtribuidas] = useState(0);
   const [funcionarios, setFuncionarios] = useState(0);
   const [motoristasDisponiveis, setMotoristasDisponiveis] = useState(0);
   const [agendamentosPendentes, setAgendamentosPendentes] = useState<number>(0);
@@ -119,6 +120,10 @@ const Dashboard = () => {
         .select("*", { count: "exact", head: true });
       if (!viaturasError) setTotalViaturas(viaturasCount || 0);
 
+      //Total de Viaturas Atribuidas
+      const { data, error } = await supabase.from("tblfuncionarioviatura").select("viaturaid", { count: "exact" });
+      if (!error) { setTotalViaturasAtribuidas(data.length); }
+      
       // Buscar funcionários e motoristas disponíveis
       const { data: funcionariosData, error: funcionariosError } = await supabase
       .from("tblfuncionarios")
@@ -283,7 +288,13 @@ const Dashboard = () => {
   }, []);
 
     const [custos, setCustos] = useState({ manutencao: 0, reparos: 0, combustivel: 0});
-  
+    function formatViaturasAtribuidas(count: number) {
+      return count === 1 ? "1 viatura atribuída" : `${count} viaturas atribuídas`;
+    }
+    function formatMotoristarDisponiveis(count: number){
+      return count === 1 ? "1 motorista disponível" : `${count} motoristas disponíveis`;
+    }
+
     useEffect(() => {
       const fetchCustos = async () => {
         const hoje = new Date();
@@ -365,14 +376,14 @@ const Dashboard = () => {
               icon={Car}
               title="Total de Viaturas"
               value={totalViaturas.toString()}
-              description="+2 este mês"
+              description={formatViaturasAtribuidas(totalViaturasAtribuidas)}
               onClick={() => navigate("/viaturas")}
             />
             <StatCard
               icon={Users}
               title="Funcionários"
               value={funcionarios.toString()}
-              description={`${motoristasDisponiveis} motoristas disponíveis`}
+              description={formatMotoristarDisponiveis(motoristasDisponiveis)}
               onClick={() => navigate("/funcionarios")}
             />
             <StatCard

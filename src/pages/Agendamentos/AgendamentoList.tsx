@@ -213,6 +213,13 @@ const AgendamentoList = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {agendamentos.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    Nenhum agendamento encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, Edit, Trash, Plus, ChevronDown, User2 } from "lucide-react";
+import { EyeIcon, Edit, Trash, Plus, ChevronDown, User2, Car } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -377,6 +377,8 @@ const FuncionariosList = () => {
                             <Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate(`/funcionarios/criar-conta/${f.funcionarioid}`)}>
                             <User2 className="mr-2 h-4 w-4" />Criar conta</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/funcionarios/atribuirviatura/${f.funcionarioid}`)}>
+                            <Car className="mr-2 h-4 w-4" />Atribuir Viatura</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(f.funcionarioid)}
                            className="text-destructive focus:text-destructive">
                             <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>

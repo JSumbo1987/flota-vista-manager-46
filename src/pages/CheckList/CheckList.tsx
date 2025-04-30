@@ -61,6 +61,7 @@ interface ChecklistItem {
   status: string;
 }
 
+//Details Checklist
 const ChecklistDetails = ({
   checklist,
   onClose,
@@ -324,6 +325,13 @@ const ChecklistsList = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {checklists.length === 0 && (
+                <TableRow>
+                <TableCell colSpan={8} className="text-center">
+                    Nenhum checklist encontrado.
+                </TableCell>
+                </TableRow>
+            )}
             </TableBody>
           </Table>
         </CardContent>

@@ -34,13 +34,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
-const ViaturaDetails = ({
-  viatura,
-  onClose,
-}: {
-  viatura: any;
-  onClose: () => void;
-}) => {
+const ViaturaDetails = ({viatura, onClose }: { viatura: any; onClose: () => void; }) => {
   if (!viatura) return null;
   
   return (
@@ -113,6 +107,7 @@ const ViaturasList = () => {
   const handleDelete = async(id: number) => {
     
     const { error } = await supabase.from("tblviaturas").delete().eq("viaturaid", id);
+    
     if(error){
       toast({
         title: "Erro ao excluir viatura.",
@@ -134,7 +129,7 @@ const ViaturasList = () => {
     setShowDeleteDialog(false);
   };
 
-  const viewDetails = (viatura: any) => {
+  const viewDetails = (viatura) => {
     setSelectedViatura(viatura);
     setShowDetailsDialog(true);
   };
@@ -147,6 +142,9 @@ const ViaturasList = () => {
           <p className="text-muted-foreground">Lista de viaturas cadastradas</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/viaturas/viaturasatribuidas")}>
+            <Car className="mr-2 h-4 w-4" /> Listar Viatura Atribuidas
+          </Button>
           <Button variant="destructive" onClick={() => navigate("/viaturas/abastecer/add")}>
             <Fuel className="mr-2 h-4 w-4" /> Novo Abastecimento
           </Button>
@@ -208,6 +206,13 @@ const ViaturasList = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {viaturas.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center">
+                      Nenhuma viatura encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
             </TableBody>
           </Table>
         </CardContent>

@@ -41,6 +41,8 @@ import UsuariosList from "./pages/Usuarios/UsuariosList";
 import AddAbastecimento from "./pages/Viaturas/AddAbastecimento";
 import DetalhesAbastecimento from "./pages/Viaturas/DetalheAbastecimento";
 import PerfilUsuario from "./pages/Usuarios/PerfilUsuario";
+import AtribuirViatura from "./pages/Funcionarios/AtribuirViatura";
+import ListaViaturasAtribuidas from "./pages/Viaturas/ViaturasAtribuidasList";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +134,14 @@ const App = () => (
                 </MainLayout>
               }
             />
+            <Route
+              path="/viaturas/viaturasatribuidas"
+              element={
+                <MainLayout>
+                  <ListaViaturasAtribuidas />
+                </MainLayout>
+              }
+            />
 
             {/* Funcionários */}
             <Route
@@ -171,6 +181,14 @@ const App = () => (
               element={
                 <MainLayout>
                   <CriarContaAcesso />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/funcionarios/atribuirviatura/:funcionarioid"
+              element={
+                <MainLayout>
+                  <AtribuirViatura />
                 </MainLayout>
               }
             />
