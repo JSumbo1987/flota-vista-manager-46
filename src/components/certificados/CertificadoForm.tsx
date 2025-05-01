@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -34,9 +34,16 @@ interface Viatura {
 interface CertificadoFormProps {
   onSuccess?: () => void;
   initialData?: any;
+  isEditing?: boolean;
+  signedUrl?: string | null;
 }
 
-const CertificadoForm = ({ onSuccess, initialData }: CertificadoFormProps) => {
+const CertificadoForm = ({ 
+  onSuccess, 
+  initialData, 
+  isEditing = false,
+  signedUrl 
+}: CertificadoFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,9 +62,10 @@ const CertificadoForm = ({ onSuccess, initialData }: CertificadoFormProps) => {
   const [numeroCertificado, setNumeroCertificado] = useState(initialData?.numeroCertificado || "");
   const [custoCertificado, setCustoCertificado] = useState(initialData?.custoCertificado || "");
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arquivoExistente, setArquivoExistente] = useState(initialData?.arquivoExistente || "");
 
   // Fetch viaturas on component mount
-  useState(() => {
+  useEffect(() => {
     const fetchViaturas = async () => {
       const { data, error } = await supabase
         .from("tblviaturas")
@@ -73,7 +81,7 @@ const CertificadoForm = ({ onSuccess, initialData }: CertificadoFormProps) => {
       }
     };
     fetchViaturas();
-  });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,40 +111,56 @@ const CertificadoForm = ({ onSuccess, initialData }: CertificadoFormProps) => {
     try {
       const status = calcularStatusCertificado(new Date(proximaInspecaoFormatada));
 
-      let filePath = "";
+      let filePath = arquivoExistente;
 
       if (arquivo) {
         const ext = arquivo.name.split(".").pop();
         filePath = `certificados/${numeroCertificado}-${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("certificados")
-          .upload(filePath, arquivo);
+          .upload(filePath, arquivo, { upsert: true });
         if (uploadError) throw uploadError;
       }
 
-      const { error: insertError } = await supabase
-        .from("tblcertificadoinspeccao")
-        .insert([
-          {
-            viaturaid: viaturaId,
-            centroinspeccao: centroInspeccao,
-            numerodoquadro: numeroDoQuadro,
-            quilometragem: quilometragem,
-            datahorainspeccao: dataInspecaoFormatada,
-            proximainspeccao: proximaInspecaoFormatada,
-            numerocertificado: numeroCertificado,
-            copiadocertificado: filePath,
-            status: status,
-            custodocertificado: custoCertificado ? parseFloat(custoCertificado) : null,
-          },
-        ]);
+      const certificadoData = {
+        viaturaid: viaturaId,
+        centroinspeccao: centroInspeccao,
+        numerodoquadro: numeroDoQuadro,
+        quilometragem: quilometragem,
+        datahorainspeccao: dataInspecaoFormatada,
+        proximainspeccao: proximaInspecaoFormatada,
+        numerocertificado: numeroCertificado,
+        copiadocertificado: filePath || null,
+        status: status,
+        custodocertificado: custoCertificado ? parseFloat(custoCertificado) : null,
+      };
 
-      if (insertError) throw insertError;
+      if (isEditing && initialData?.id) {
+        // Update existing certificate
+        const { error } = await supabase
+          .from("tblcertificadoinspeccao")
+          .update(certificadoData)
+          .eq("id", initialData.id);
 
-      toast({
-        title: "Certificado salvo",
-        description: "O certificado foi registrado com sucesso.",
-      });
+        if (error) throw error;
+
+        toast({
+          title: "Certificado atualizado",
+          description: "O certificado foi editado com sucesso.",
+        });
+      } else {
+        // Create new certificate
+        const { error } = await supabase
+          .from("tblcertificadoinspeccao")
+          .insert([certificadoData]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Certificado salvo",
+          description: "O certificado foi registrado com sucesso.",
+        });
+      }
       
       if (onSuccess) {
         onSuccess();
@@ -161,7 +185,7 @@ const CertificadoForm = ({ onSuccess, initialData }: CertificadoFormProps) => {
         <CardHeader>
           <CardTitle>Informações do Certificado</CardTitle>
           <CardDescription>
-            Preencha os dados do certificado de inspeção
+            {isEditing ? "Altere os dados do certificado de inspeção" : "Preencha os dados do certificado de inspeção"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -244,13 +268,27 @@ const CertificadoForm = ({ onSuccess, initialData }: CertificadoFormProps) => {
               required
             />
             <div className="space-y-2">
-              <Label htmlFor="arquivo">Arquivo (PDF ou imagem)*</Label>
+              <Label htmlFor="arquivo">
+                Arquivo (PDF ou imagem){isEditing && arquivoExistente ? " (já existente)" : isEditing ? "" : "*"}
+              </Label>
+              {isEditing && arquivoExistente && signedUrl && (
+                <div className="mb-2">
+                  <a
+                    href={signedUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-blue-600 underline"
+                  >
+                    Visualizar arquivo atual
+                  </a>
+                </div>
+              )}
               <Input
                 type="file"
                 id="arquivo"
                 accept=".pdf,.png,.jpg,.jpeg"
                 onChange={(e) => setArquivo(e.target.files?.[0] || null)}
-                required
+                required={!isEditing || !arquivoExistente}
               />
             </div>
           </div>
@@ -264,7 +302,7 @@ const CertificadoForm = ({ onSuccess, initialData }: CertificadoFormProps) => {
             Cancelar
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Salvando..." : "Salvar Certificado"}
+            {isSubmitting ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar Certificado"}
           </Button>
         </CardFooter>
       </form>
