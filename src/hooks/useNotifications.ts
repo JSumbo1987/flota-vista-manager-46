@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -36,7 +37,7 @@ export function useNotifications(pollInterval = 5 * 60 * 1000) { // padrão: 5 m
 
       // 2. Buscar as notificações criadas na tabela
       const { data, error } = await supabase
-        .from<Notification>("tblnotificacoes")
+        .from("tblnotificacoes")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -63,4 +64,3 @@ export function useNotifications(pollInterval = 5 * 60 * 1000) { // padrão: 5 m
 
   return { notifications, loading, error, refetch: fetchNotifications };
 }
-

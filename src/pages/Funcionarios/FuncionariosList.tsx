@@ -1,37 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, Edit, Trash, Plus, ChevronDown, User2, Car } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Plus, Search, Filter, FileSpreadsheet, MoreVertical, Pencil, Trash, Car, UserPlus, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -313,8 +291,18 @@ const FuncionariosList = () => {
   
     window.open(publicURL, "_blank");
   };
-  
-  
+
+  const handleViewImage = async (url) => {
+    try {
+      const { data } = await supabase.storage.from("funcionarios").getPublicUrl(url);
+      
+      if (data && data.publicUrl) {
+        window.open(data.publicUrl, "_blank");
+      }
+    } catch (error) {
+      console.error("Erro ao obter URL público:", error);
+    }
+  };
 
   return (
     <div className="space-y-4">

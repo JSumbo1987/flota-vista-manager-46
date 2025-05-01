@@ -1,10 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Car, Calendar, Users, AlertTriangle } from "lucide-react";
+import { Info, AlertTriangle, CheckCircle, XCircle, Car, Users, CalendarDays, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+
+// Ensure consistent status types
+type TaskStatus = "warning" | "Pendente" | "Concluido" | "Cancelado";
+
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  status: TaskStatus;
+}
 
 const StatCard = ({
   icon: Icon,
@@ -89,6 +103,7 @@ const LicenseAlert = ({
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // States
   const [totalViaturas, setTotalViaturas] = useState(0);
@@ -287,75 +302,121 @@ const Dashboard = () => {
     fetchStats();
   }, []);
 
-    const [custos, setCustos] = useState({ manutencao: 0, reparos: 0, combustivel: 0});
-    function formatViaturasAtribuidas(count: number) {
-      return count === 1 ? "1 viatura atribuída" : `${count} viaturas atribuídas`;
-    }
-    function formatMotoristarDisponiveis(count: number){
-      return count === 1 ? "1 motorista disponível" : `${count} motoristas disponíveis`;
-    }
+  const [custos, setCustos] = useState({ manutencao: 0, reparos: 0, combustivel: 0});
+  function formatViaturasAtribuidas(count: number) {
+    return count === 1 ? "1 viatura atribuída" : `${count} viaturas atribuídas`;
+  }
+  function formatMotoristarDisponiveis(count: number){
+    return count === 1 ? "1 motorista disponível" : `${count} motoristas disponíveis`;
+  }
 
-    useEffect(() => {
-      const fetchCustos = async () => {
-        const hoje = new Date();
-        
-        const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-        .toISOString().slice(0, 10); // yyyy-MM-dd
+  useEffect(() => {
+    const fetchCustos = async () => {
+      const hoje = new Date();
+      
+      const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
+      .toISOString().slice(0, 10); // yyyy-MM-dd
 
-        const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)
-        .toISOString().slice(0, 10); 
+      const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)
+      .toISOString().slice(0, 10); 
   
-        try {
-          // Serviços de Manutenção e Reparos
-          const { data: servicosData } = await supabase
-            .from("tblservicos")
-            .select(`*, tblcategoriaassistencia:categoriaid(id, nome)`)
-            .gte("dataservico", primeiroDiaMes)
-            .lte("dataservico", ultimoDiaMes);
+      try {
+        // Serviços de Manutenção e Reparos
+        const { data: servicosData } = await supabase
+          .from("tblservicos")
+          .select(`*, tblcategoriaassistencia:categoriaid(id, nome)`)
+          .gte("dataservico", primeiroDiaMes)
+          .lte("dataservico", ultimoDiaMes);
   
-          let manutencao = 0;
-          let reparos = 0;
+        let manutencao = 0;
+        let reparos = 0;
 
-          if (servicosData) {
-            servicosData.forEach((s) => {
-              if (s.tblcategoriaassistencia?.nome.toLowerCase().includes("preventiva")) {
-                manutencao += Number(s.custo || 0);
-              } else {
-                reparos += Number(s.custo || 0);
-              }
-            });
-          }
-  
-          // Custos com Combustível
-          const { data: combustivelData } = await supabase
-            .from("tblabastecimentos")
-            .select("valortotal")
-            .gte("dataabastecimento", primeiroDiaMes)
-            .lte("dataabastecimento", ultimoDiaMes);
-  
-          const combustivel = combustivelData?.reduce((acc, curr) => acc + (curr.valortotal || 0), 0) || 0;
-  
-          // Atualizar o estado
-          setCustos({
-            manutencao,
-            reparos,
-            combustivel,
+        if (servicosData) {
+          servicosData.forEach((s) => {
+            if (s.tblcategoriaassistencia?.nome.toLowerCase().includes("preventiva")) {
+              manutencao += Number(s.custo || 0);
+            } else {
+              reparos += Number(s.custo || 0);
+            }
           });
-  
-        } catch (error) {
-          console.error("Erro ao buscar custos:", error);
         }
-      };
   
-      fetchCustos();
-    }, []);
+        // Custos com Combustível
+        const { data: combustivelData } = await supabase
+          .from("tblabastecimentos")
+          .select("valortotal")
+          .gte("dataabastecimento", primeiroDiaMes)
+          .lte("dataabastecimento", ultimoDiaMes);
   
-    const total = custos.manutencao + custos.reparos + custos.combustivel;
+        const combustivel = combustivelData?.reduce((acc, curr) => acc + (curr.valortotal || 0), 0) || 0;
   
-    const calcularPercentual = (valor: number) => {
-      if (total === 0) return 0;
-      return (valor / total) * 100;
+        // Atualizar o estado
+        setCustos({
+          manutencao,
+          reparos,
+          combustivel,
+        });
+  
+      } catch (error) {
+        console.error("Erro ao buscar custos:", error);
+      }
     };
+  
+    fetchCustos();
+  }, []);
+  
+  const total = custos.manutencao + custos.reparos + custos.combustivel;
+  
+  const calcularPercentual = (valor: number) => {
+    if (total === 0) return 0;
+    return (valor / total) * 100;
+  };
+
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("tbltarefas")
+          .select("*")
+          .order("datacriacao", { ascending: false });
+        
+        if (error) throw error;
+        
+        // Map API data to UI format with consistent status types
+        return data.map(item => ({
+          id: String(item.id),
+          title: String(item.titulo),
+          description: String(item.descricao),
+          date: String(item.datacriacao),
+          status: mapStatusFromApi(item.status)
+        })) as Task[];
+        
+      } catch (error) {
+        console.error("Erro ao buscar tarefas:", error);
+        return [];
+      }
+    };
+
+    fetchTasks().then(setTasks);
+  }, []);
+
+  const mapStatusFromApi = (apiStatus: string): TaskStatus => {
+    switch (apiStatus.toLowerCase()) {
+      case "pendente":
+      case "pending":
+        return "Pendente";
+      case "concluido":
+      case "completed":
+        return "Concluido";
+      case "cancelado":
+      case "canceled":
+        return "Cancelado";
+      default:
+        return "warning";
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -502,10 +563,31 @@ const Dashboard = () => {
           <div className="p-4 text-center text-muted-foreground">Análises detalhadas ainda não implementadas.</div>
         </TabsContent>
       </Tabs>
+
+      <div className="mt-4">
+        <h2 className="text-2xl font-bold tracking-tight">Tarefas</h2>
+        <p className="text-muted-foreground">Lista de tarefas pendentes.</p>
+        <div className="mt-4">
+          {tasks.length === 0 && (
+            <div className="flex items-center justify-center">
+              <Badge className="text-sm">Nenhuma tarefa pendente</Badge>
+            </div>
+          )}
+          {tasks.map((task) => (
+            <div key={task.id} className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{task.title}</span>
+                <Badge className="text-sm" variant="outline">{mapStatusFromApi(task.status)}</Badge>
+              </div>
+              <Button variant="outline" onClick={() => navigate(`/tarefas/${task.id}`)}>
+                Ver mais
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
 
 export default Dashboard;
-
-
