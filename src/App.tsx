@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -43,7 +44,6 @@ import DetalhesAbastecimento from "./pages/Viaturas/DetalheAbastecimento";
 import PerfilUsuario from "./pages/Usuarios/PerfilUsuario";
 import AtribuirViatura from "./pages/Funcionarios/AtribuirViatura";
 import ListaViaturasAtribuidas from "./pages/Viaturas/ViaturasAtribuidasList";
-import AddUsuario from "./pages/Usuarios/AddUsuario";
 
 const queryClient = new QueryClient();
 
@@ -359,10 +359,7 @@ const App = () => (
               path="/notificacoes"
               element={
                 <MainLayout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold mb-4">Notificações</h2>
-                    <p>Página em implementação</p>
-                  </div>
+                  <NotificacoesList />
                 </MainLayout>
               }
             />
@@ -370,10 +367,7 @@ const App = () => (
               path="/configuracoes"
               element={
                 <MainLayout>
-                  <div className="p-8 text-center">
-                    <h2 className="text-2xl font-bold mb-4">Configurações</h2>
-                    <p>Página em implementação</p>
-                  </div>
+                  <ConfiguracoesList />
                 </MainLayout>
               }
             />
@@ -396,4 +390,3 @@ const App = () => (
 );
 
 export default App;
-
