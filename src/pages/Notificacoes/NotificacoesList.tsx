@@ -1,362 +1,312 @@
 
 import { useState, useEffect } from "react";
-import { Bell, Check, RefreshCw, Filter } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Bell, Check, Trash, Filter, RefreshCcw } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
+import { useAuth } from "@/pages/Auth/AuthContext";
 
-interface Notification {
-  id: string;
+interface Notificacao {
+  notificacaoid: string;
   titulo: string;
-  descricao: string;
-  tipo: "warning" | "error" | "info" | "success";
-  lido: boolean;
-  rota: string;
-  created_at: string;
+  mensagem: string;
+  datahora: string;
+  tipo: "info" | "warning" | "success" | "error";
+  lida: boolean;
+  usuarioid: string;
+  actionurl?: string;
+  criado_em: string;
 }
 
-const getTypeStyles = (type: string) => {
-  switch (type) {
-    case "warning":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "error":
-      return "bg-red-100 text-red-800 border-red-200";
-    case "success":
-      return "bg-green-100 text-green-800 border-green-200";
-    case "info":
-    default:
-      return "bg-blue-100 text-blue-800 border-blue-200";
-  }
-};
-
-const NotificationItem = ({
-  notification,
-  onMarkAsRead,
-  onClick,
-}: {
-  notification: Notification;
-  onMarkAsRead: (id: string) => void;
-  onClick: () => void;
-}) => {
-  const date = new Date(notification.created_at);
-  const formattedDate = date.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-  const formattedTime = date.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return (
-    <div
-      className={`p-4 mb-3 border-l-4 rounded-r-lg hover:bg-muted/50 cursor-pointer transition-colors ${
-        getTypeStyles(notification.tipo)
-      } ${!notification.lido ? "bg-muted/20" : ""}`}
-      onClick={onClick}
-    >
-      <div className="flex justify-between items-start">
-        <h4 className="text-sm font-medium">{notification.titulo}</h4>
-        <div className="flex items-center">
-          {!notification.lido && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 rounded-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMarkAsRead(notification.id);
-              }}
-            >
-              <Check className="h-3 w-3" />
-            </Button>
-          )}
-          <span className="text-xs text-muted-foreground ml-2">
-            {formattedDate} {formattedTime}
-          </span>
-        </div>
-      </div>
-      <p className="text-xs mt-1">{notification.descricao}</p>
-    </div>
-  );
-};
-
 const NotificacoesList = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("todas");
+  const { usuario } = useAuth();
+  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filtro, setFiltro] = useState<"todas" | "lidas" | "nao-lidas">("todas");
 
-  const fetchNotifications = async () => {
-    setLoading(true);
+  useEffect(() => {
+    carregarNotificacoes();
+  }, [filtro]);
+
+  const carregarNotificacoes = async () => {
+    setIsLoading(true);
+    
     try {
-      // Primeiro, chama a edge function para verificar se há novas notificações
-      try {
-        const response = await fetch("https://kbiwjoecupoulyasrnao.supabase.co/functions/v1/database-access", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-          },
-        });
-        
-        if (!response.ok) {
-          console.error("Erro ao verificar notificações");
-        }
-      } catch (error) {
-        console.error("Erro ao chamar a edge function:", error);
-      }
-
-      // Busca todas as notificações
-      const { data, error } = await supabase
+      let query = supabase
         .from("tblnotificacoes")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("criado_em", { ascending: false });
+
+      if (usuario?.id) {
+        query = query.eq("usuarioid", usuario.id);
+      }
+
+      if (filtro === "lidas") {
+        query = query.eq("lida", true);
+      } else if (filtro === "nao-lidas") {
+        query = query.eq("lida", false);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
-      setNotifications(data || []);
+      
+      setNotificacoes(data || []);
     } catch (error) {
-      console.error("Erro ao buscar notificações:", error);
+      console.error("Erro ao carregar notificações:", error);
       toast({
-        title: "Erro ao carregar notificações",
-        description: "Não foi possível carregar as notificações.",
+        title: "Erro",
+        description: "Não foi possível carregar as notificações",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
-  const markAsRead = async (id: string) => {
+  const marcarComoLida = async (id: string) => {
     try {
       const { error } = await supabase
         .from("tblnotificacoes")
-        .update({ lido: true })
-        .eq("id", id);
+        .update({ lida: true })
+        .eq("notificacaoid", id);
 
       if (error) throw error;
 
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          notification.id === id ? { ...notification, lido: true } : notification
+      setNotificacoes(prev => 
+        prev.map(notif => 
+          notif.notificacaoid === id ? { ...notif, lida: true } : notif
         )
       );
 
       toast({
         title: "Notificação marcada como lida",
-        description: "A notificação foi marcada como lida com sucesso.",
       });
     } catch (error) {
+      console.error("Erro ao marcar notificação:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível marcar a notificação como lida.",
+        description: "Não foi possível marcar a notificação como lida",
         variant: "destructive",
       });
     }
   };
 
-  const markAllAsRead = async () => {
+  const excluirNotificacao = async (id: string) => {
     try {
       const { error } = await supabase
         .from("tblnotificacoes")
-        .update({ lido: true })
-        .is("lido", false);
+        .delete()
+        .eq("notificacaoid", id);
 
       if (error) throw error;
 
-      setNotifications((prev) =>
-        prev.map((notification) => ({ ...notification, lido: true }))
+      setNotificacoes(prev => 
+        prev.filter(notif => notif.notificacaoid !== id)
       );
 
       toast({
-        title: "Notificações marcadas como lidas",
-        description: "Todas as notificações foram marcadas como lidas.",
+        title: "Notificação excluída com sucesso",
       });
     } catch (error) {
+      console.error("Erro ao excluir notificação:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível marcar as notificações como lidas.",
+        description: "Não foi possível excluir a notificação",
         variant: "destructive",
       });
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.lido) {
-      markAsRead(notification.id);
-    }
-    
-    if (notification.rota) {
-      navigate(notification.rota);
+  const marcarTodasComoLidas = async () => {
+    try {
+      const notificacoesNaoLidas = notificacoes.filter(n => !n.lida).map(n => n.notificacaoid);
+      
+      if (notificacoesNaoLidas.length === 0) {
+        toast({
+          title: "Informação",
+          description: "Não há notificações não lidas",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("tblnotificacoes")
+        .update({ lida: true })
+        .in("notificacaoid", notificacoesNaoLidas);
+
+      if (error) throw error;
+
+      setNotificacoes(prev => 
+        prev.map(notif => ({ ...notif, lida: true }))
+      );
+
+      toast({
+        title: "Todas as notificações foram marcadas como lidas",
+      });
+    } catch (error) {
+      console.error("Erro ao marcar todas notificações:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível marcar todas as notificações como lidas",
+        variant: "destructive",
+      });
     }
   };
 
-  const filteredNotifications = notifications.filter((notification) => {
-    if (filter === "todas") return true;
-    if (filter === "nao-lidas") return !notification.lido;
-    return notification.tipo === filter;
-  });
+  const getBadgeVariant = (tipo: Notificacao['tipo']) => {
+    switch (tipo) {
+      case 'info': return 'secondary';
+      case 'warning': return 'warning';
+      case 'error': return 'destructive';
+      case 'success': return 'success';
+      default: return 'secondary';
+    }
+  };
 
-  const unreadCount = notifications.filter((n) => !n.lido).length;
+  const formatarData = (data: string) => {
+    try {
+      return format(new Date(data), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: pt });
+    } catch (e) {
+      return data;
+    }
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Notificações</h2>
+          <h2 className="text-3xl font-bold tracking-tight flex items-center">
+            <Bell className="mr-2 h-6 w-6" />
+            Notificações
+          </h2>
           <p className="text-muted-foreground">
             Gerencie todas as suas notificações do sistema
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchNotifications}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
-            />
-            Atualizar
+
+        <div className="flex items-center space-x-2">
+          <Select value={filtro} onValueChange={(value) => setFiltro(value as any)}>
+            <SelectTrigger className="w-[180px]">
+              <div className="flex items-center">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Filtrar" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas</SelectItem>
+              <SelectItem value="lidas">Lidas</SelectItem>
+              <SelectItem value="nao-lidas">Não lidas</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button variant="outline" onClick={carregarNotificacoes}>
+            <RefreshCcw className="h-4 w-4" />
           </Button>
-          {unreadCount > 0 && (
-            <Button size="sm" onClick={markAllAsRead}>
-              <Check className="mr-2 h-4 w-4" />
-              Marcar tudo como lido
-            </Button>
-          )}
+
+          <Button variant="secondary" onClick={marcarTodasComoLidas}>
+            <Check className="h-4 w-4 mr-2" />
+            Marcar todas como lidas
+          </Button>
         </div>
       </div>
 
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center">
-                <Bell className="h-5 w-5 mr-2" />
-                Centro de Notificações
-                {unreadCount > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {unreadCount} não lida{unreadCount > 1 ? "s" : ""}
-                  </Badge>
-                )}
-              </CardTitle>
-              <CardDescription>
-                Veja todas as suas notificações do sistema
-              </CardDescription>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtrar
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setFilter("todas")}>
-                  Todas
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilter("nao-lidas")}>
-                  Não lidas
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setFilter("info")}>
-                  Informações
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilter("success")}>
-                  Sucessos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilter("warning")}>
-                  Avisos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilter("error")}>
-                  Erros
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+        <CardHeader>
+          <CardTitle>Suas notificações</CardTitle>
+          <CardDescription>
+            {notificacoes.filter(n => !n.lida).length} notificações não lidas
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">Todas</TabsTrigger>
-              <TabsTrigger value="system">Sistema</TabsTrigger>
-              <TabsTrigger value="viaturas">Viaturas</TabsTrigger>
-              <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="space-y-4">
-              {loading ? (
-                <div className="text-center py-8">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                  <p className="mt-2 text-muted-foreground">
-                    Carregando notificações...
-                  </p>
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : notificacoes.length === 0 ? (
+            <div className="text-center py-10">
+              <Bell className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+              <p className="mt-2 text-lg text-muted-foreground">Nenhuma notificação encontrada</p>
+              <p className="text-sm text-muted-foreground">
+                As notificações do sistema aparecerão aqui quando disponíveis
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {notificacoes.map((notif) => (
+                <div 
+                  key={notif.notificacaoid}
+                  className={`p-4 rounded-md border ${notif.lida ? 'bg-muted/30' : 'bg-card'}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4">
+                      <div 
+                        className={`p-2 rounded-full bg-${getBadgeVariant(notif.tipo)}/20 text-${getBadgeVariant(notif.tipo)}`}
+                      >
+                        <Bell className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">{notif.titulo}</h4>
+                          {!notif.lida && (
+                            <Badge variant="default" className="text-xs">Nova</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{notif.mensagem}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {formatarData(notif.datahora || notif.criado_em)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-1">
+                      {!notif.lida && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => marcarComoLida(notif.notificacaoid)}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => excluirNotificacao(notif.notificacaoid)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {notif.actionurl && (
+                    <div className="mt-3 flex justify-end">
+                      <Button variant="link" asChild className="p-0 h-auto">
+                        <a href={notif.actionurl} target="_blank" rel="noopener noreferrer">
+                          Ver detalhes
+                        </a>
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ) : filteredNotifications.length === 0 ? (
-                <div className="text-center py-8">
-                  <Bell className="h-8 w-8 mx-auto text-muted-foreground" />
-                  <p className="mt-2 text-muted-foreground">
-                    Nenhuma notificação encontrada
-                  </p>
-                </div>
-              ) : (
-                filteredNotifications.map((notification) => (
-                  <NotificationItem
-                    key={notification.id}
-                    notification={notification}
-                    onMarkAsRead={markAsRead}
-                    onClick={() => handleNotificationClick(notification)}
-                  />
-                ))
-              )}
-            </TabsContent>
-            <TabsContent value="system">
-              <p className="text-center py-4 text-muted-foreground">
-                Notificações do sistema serão exibidas aqui
-              </p>
-            </TabsContent>
-            <TabsContent value="viaturas">
-              <p className="text-center py-4 text-muted-foreground">
-                Notificações relacionadas a viaturas serão exibidas aqui
-              </p>
-            </TabsContent>
-            <TabsContent value="funcionarios">
-              <p className="text-center py-4 text-muted-foreground">
-                Notificações relacionadas a funcionários serão exibidas aqui
-              </p>
-            </TabsContent>
-          </Tabs>
+              ))}
+            </div>
+          )}
         </CardContent>
-        <CardFooter className="border-t pt-4 pb-2">
-          <p className="text-xs text-muted-foreground">
-            As notificações são geradas automaticamente pelo sistema e podem ser
-            relacionadas a manutenções, renovações de documentos, entre outros
-            eventos importantes.
+        <CardFooter className="border-t flex justify-between items-center pt-4">
+          <p className="text-sm text-muted-foreground">
+            Total de notificações: {notificacoes.length}
           </p>
         </CardFooter>
       </Card>

@@ -44,6 +44,12 @@ import DetalhesAbastecimento from "./pages/Viaturas/DetalheAbastecimento";
 import PerfilUsuario from "./pages/Usuarios/PerfilUsuario";
 import AtribuirViatura from "./pages/Funcionarios/AtribuirViatura";
 import ListaViaturasAtribuidas from "./pages/Viaturas/ViaturasAtribuidasList";
+// Import the NotificacoesList component
+import NotificacoesList from "./pages/Notificacoes/NotificacoesList";
+// Import the ConfiguracoesList component
+import ConfiguracoesList from "./pages/Configuracoes/ConfiguracoesList";
+// Create a placeholder for AddUsuario
+import AddUsuario from "./pages/Usuarios/AddUsuario";
 
 const queryClient = new QueryClient();
 
