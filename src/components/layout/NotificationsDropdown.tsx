@@ -6,6 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "@/hooks/useNotifications";
+import { supabase } from "@/lib/supabaseClient";
+import getRelativeTime from "./RelativeTime";
 
 interface NotificationsDropdownProps {
   onClose: () => void;
@@ -69,21 +71,32 @@ const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
   // Usando só o hook customizado para pegar notificações
   const { notifications, loading, error } = useNotifications();
 
+  
+
   // Mapeia as notificações para o formato esperado pelo NotificationItem
   const mappedNotifications = notifications.map((item) => ({
     id: item.id,
     title: item.titulo || "Sem título",
     description: item.descricao || "",
     time: item.created_at
-      ? new Date(item.created_at).toLocaleString()
+      ? getRelativeTime(item.created_at)//Este é um hook para mostrar "há 1 minuto, há 1 hora etc."
       : "",
     read: item.lido || false,
     type: (item.tipo as any) || "info",
     route: item.rota || "/",
-    onClick: () => {
-      onClose();
-      navigate(item.rota || "/");
-    },
+    onClick: async () => {
+      // Marcar como lida no Supabase
+      const { error } = await supabase
+        .from("tblnotificacoes")
+        .update({ lido: true })
+        .eq("id", item.id);
+    
+      if (!error) {
+        onClose(); // Fecha o dropdown
+        navigate(item.rota || "/"); // Redireciona
+      }
+    }
+    
   }));
 
   return (

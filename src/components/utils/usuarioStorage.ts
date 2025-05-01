@@ -1,6 +1,6 @@
 // utils/usuarioStorage.js
 import CryptoJS from "crypto-js";
-import jwt from "jsonwebtoken";
+//import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -27,7 +27,7 @@ export const obterUsuarioDescriptografado = () => {
 export const limparUsuario = () => {
   localStorage.removeItem("usuario");
 };
-
+/*
 // Gera um token JWT com os dados do usuário
 export function gerarToken(usuario) {
   const payload = {
@@ -49,4 +49,4 @@ export function verificarToken(token) {
   } catch (erro) {
     return { valido: false, erro: erro.message };
   }
-}
+}*/

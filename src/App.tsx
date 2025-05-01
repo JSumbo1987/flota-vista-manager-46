@@ -44,6 +44,9 @@ import DetalhesAbastecimento from "./pages/Viaturas/DetalheAbastecimento";
 import PerfilUsuario from "./pages/Usuarios/PerfilUsuario";
 import AtribuirViatura from "./pages/Funcionarios/AtribuirViatura";
 import ListaViaturasAtribuidas from "./pages/Viaturas/ViaturasAtribuidasList";
+import NotificacoesList from "./pages/Notificacoes/NotificacoesList";
+import ConfiguracoesList from "./pages/Configuracoes/ConfiguracoesList";
+import AddUsuario from "./pages/Usuarios/AddUsuario";
 
 const queryClient = new QueryClient();
 

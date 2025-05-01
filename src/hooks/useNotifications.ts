@@ -11,7 +11,7 @@ interface Notification {
   created_at: string;
 }
 
-export function useNotifications(pollInterval = 5 * 60 * 1000) { // padrão: 5 minutos
+export function useNotifications(pollInterval = 60000) { // 1 minuto
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,47 +20,31 @@ export function useNotifications(pollInterval = 5 * 60 * 1000) { // padrão: 5 m
     try {
       setLoading(true);
       setError(null);
-
-      // 1. Chamar a edge function que verifica e cria notificações
-      const response = await fetch("https://kbiwjoecupoulyasrnao.supabase.co/functions/v1/database-access", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro na edge function: ${response.statusText}`);
-      }
-
-      // 2. Buscar as notificações criadas na tabela
+  
       const { data, error } = await supabase
         .from<Notification>("tblnotificacoes")
         .select("*")
         .order("created_at", { ascending: false });
-
+  
       if (error) throw error;
-
-      setNotifications(data || []);
+      // ✅ Filtra apenas não lidas
+      setNotifications((data || []).filter(n => !n.lido));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err) || "Erro desconhecido");
+      setError(err instanceof Error ? err.message : String(err));
       setNotifications([]);
     } finally {
       setLoading(false);
     }
   }, []);
+  
 
   useEffect(() => {
     fetchNotifications();
-
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, pollInterval);
-
+    const interval = setInterval(fetchNotifications, pollInterval);
     return () => clearInterval(interval);
   }, [fetchNotifications, pollInterval]);
 
   return { notifications, loading, error, refetch: fetchNotifications };
 }
+
 
