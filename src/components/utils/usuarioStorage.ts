@@ -1,11 +1,8 @@
-// utils/usuarioStorage.js
-import CryptoJS from "crypto-js";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-dotenv.config();
 
-const CHAVE = process.env.CHAVE_SECRETA; // idealmente vir de uma env
-const JWT_SECRET = process.env.JWT_SECRET;
+// utils/usuarioStorage.ts
+import CryptoJS from "crypto-js";
+
+const CHAVE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 export const salvarUsuarioCriptografado = (usuario) => {
   const criptografado = CryptoJS.AES.encrypt(JSON.stringify(usuario), CHAVE).toString();
@@ -28,23 +25,34 @@ export const limparUsuario = () => {
   localStorage.removeItem("usuario");
 };
 
-// Gera um token JWT com os dados do usuário
+// Função simplificada para substituir JWT no navegador
 export function gerarToken(usuario) {
+  // Criamos um objeto com os dados do usuário e a expiração
   const payload = {
     id: usuario.userid,
     nome: usuario.usernome,
     email: usuario.useremail,
-    funcionarioid: usuario.tblfuncionarios?.funcionarioid
+    funcionarioid: usuario.tblusuariofuncionario?.funcionarioid,
+    exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hora de expiração
   };
-
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-  return token;
+  
+  // Criptografamos o payload inteiro usando CryptoJS
+  return CryptoJS.AES.encrypt(JSON.stringify(payload), CHAVE).toString();
 }
 
 // Verifica o token e retorna os dados do usuário logado
 export function verificarToken(token) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    // Descriptografamos o token
+    const bytes = CryptoJS.AES.decrypt(token, CHAVE);
+    const decoded = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+    
+    // Verificamos se o token expirou
+    const agora = Math.floor(Date.now() / 1000);
+    if (decoded.exp < agora) {
+      return { valido: false, erro: "Token expirado" };
+    }
+    
     return { valido: true, usuario: decoded };
   } catch (erro) {
     return { valido: false, erro: erro.message };

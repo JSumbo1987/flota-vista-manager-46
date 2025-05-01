@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Car, Eye, EyeOff } from "lucide-react";
@@ -35,11 +36,12 @@ const Login = () => {
 
     setIsLoading(true);
 
-    const { data: user, error } = await supabase
-      .from("tblusuarios")
-      .select("userid, useremail, usernome, userpassword, tblusuariofuncionario(funcionarioid), tblpermissoes(*)")
-      .eq("useremail", email)
-      .single();
+    try {
+      const { data: user, error } = await supabase
+        .from("tblusuarios")
+        .select("userid, useremail, usernome, userpassword, tblusuariofuncionario(funcionarioid), tblpermissoes(*)")
+        .eq("useremail", email)
+        .single();
 
       if (error || !user) {
         toast({
@@ -51,30 +53,39 @@ const Login = () => {
         return;
       }
       
-    const senhaCorreta = await bcrypt.compare(password, user.userpassword);
+      const senhaCorreta = await bcrypt.compare(password, user.userpassword);
 
-    if (!senhaCorreta) {
+      if (!senhaCorreta) {
+        toast({
+          title: "Senha incorreta",
+          description: "Por favor, tente novamente.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Gera o token e armazena os dados do usuário
+      const token = gerarToken(user);
+      salvarUsuarioCriptografado(user);
+      localStorage.setItem("token", token);
+
       toast({
-        title: "Senha incorreta",
-        description: "Por favor, tente novamente.",
+        title: "Login realizado com sucesso!",
+        description: "Bem-vindo ao sistema Flota Vista.",
+      });
+
+      navigate("/");
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
+      toast({
+        title: "Erro no login",
+        description: "Ocorreu um erro ao tentar fazer login. Tente novamente.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Aqui você pode armazenar os dados do usuário em um context ou localStorage
-    const token = gerarToken(user);
-    salvarUsuarioCriptografado(user);
-    localStorage.setItem("usuario", token);
-
-    toast({
-      title: "Login realizado com sucesso!",
-      description: "Bem-vindo ao sistema Flota Vista.",
-    });
-
-    navigate("/");
-    setIsLoading(false);
   };
 
   return (
@@ -162,4 +173,3 @@ const Login = () => {
 };
 
 export default Login;
-
