@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Car, 
@@ -13,7 +14,9 @@ import {
   Home, 
   FileCheck, 
   Truck, 
-  Award
+  Award,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,9 +31,10 @@ interface NavItemProps {
   href: string;
   isActive: boolean;
   onClick: () => void;
+  collapsed?: boolean;
 }
 
-const NavItem = ({ icon: Icon, label, href, isActive, onClick }: NavItemProps) => {
+const NavItem = ({ icon: Icon, label, href, isActive, onClick, collapsed }: NavItemProps) => {
   return (
     <Button
       variant="ghost"
@@ -41,7 +45,7 @@ const NavItem = ({ icon: Icon, label, href, isActive, onClick }: NavItemProps) =
       onClick={onClick}
     >
       <Icon className="h-5 w-5" />
-      <span>{label}</span>
+      {!collapsed && <span>{label}</span>}
     </Button>
   );
 };
@@ -49,10 +53,15 @@ const NavItem = ({ icon: Icon, label, href, isActive, onClick }: NavItemProps) =
 const Sidebar = ({ onClose }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
   
   const handleNavigation = (path: string) => {
     navigate(path);
     if (onClose) onClose();
+  };
+
+  const toggleCollapse = () => {
+    setCollapsed(!collapsed);
   };
 
   const navItems = [
@@ -83,14 +92,23 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   ];
 
   return (
-    <div className="w-64 h-full bg-sidebar flex flex-col border-r border-sidebar-border">
+    <div className={cn("h-full bg-sidebar flex flex-col border-r border-sidebar-border transition-all duration-300", 
+      collapsed ? "w-16" : "w-64")}>
       {/* Logo */}
-      <div className="p-6">
-        <h1 className="text-xl font-bold text-white flex items-center">
-          <Car className="mr-2 h-6 w-6" />
-          Flota Vista
-        </h1>
+      <div className={cn("p-6 flex items-center", collapsed ? "justify-center" : "")}>
+        <Car className={cn("h-6 w-6", collapsed ? "mr-0" : "mr-2")} />
+        {!collapsed && <h1 className="text-xl font-bold text-white">Flota Vista</h1>}
       </div>
+
+      {/* Collapse button */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={toggleCollapse} 
+        className="absolute top-6 right-0 transform translate-x-1/2 bg-primary text-primary-foreground rounded-full p-0 h-6 w-6 flex items-center justify-center"
+      >
+        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+      </Button>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto flota-scrollbar">
@@ -102,22 +120,24 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             href={item.href}
             isActive={location.pathname === item.href}
             onClick={() => handleNavigation(item.href)}
+            collapsed={collapsed}
           />
         ))}
       </nav>
 
       {/* Logout button */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className={cn("p-4 border-t border-sidebar-border", collapsed ? "flex justify-center" : "")}>
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 px-3 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          className={cn("text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+            collapsed ? "w-10 h-10 p-0" : "w-full justify-start gap-3 px-3")}
           onClick={() => {
             // TODO: Add logout logic
             handleNavigation("/login");
           }}
         >
           <LogOut className="h-5 w-5" />
-          <span>Sair</span>
+          {!collapsed && <span>Sair</span>}
         </Button>
       </div>
     </div>

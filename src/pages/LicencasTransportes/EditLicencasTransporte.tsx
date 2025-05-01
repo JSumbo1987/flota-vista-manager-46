@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Calendar } from "lucide-react";
@@ -16,8 +17,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
@@ -45,6 +45,8 @@ const EditLicencaTransporte = () => {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [copiaAtual, setCopiaAtual] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [licencaNumero, setLicencaNumero] = useState<string>("");
+  const [custoLicenca, setCustoLicenca] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,6 +80,8 @@ const EditLicencaTransporte = () => {
         setDataEmissao(new Date(data.dataemissao));
         setDataVencimento(new Date(data.datavencimento));
         setCopiaAtual(data.copialicencatransporte);
+        setLicencaNumero(data.licencanumero || "");
+        setCustoLicenca(data.custodalicenca ? data.custodalicenca.toString() : "");
       } catch (error) {
         toast({
           title: "Erro ao carregar dados",
@@ -111,7 +115,7 @@ const EditLicencaTransporte = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!viaturaId || !descricao || !proprietario || !dataEmissao || !dataVencimento) {
+    if (!viaturaId || !descricao || !proprietario || !dataEmissao || !dataVencimento || !licencaNumero) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos obrigatórios.",
@@ -150,6 +154,8 @@ const EditLicencaTransporte = () => {
           datavencimento: format(dataVencimento, "yyyy-MM-dd"),
           copialicencatransporte: filePath,
           licencastatus: status,
+          licencanumero: licencaNumero,
+          custodalicenca: custoLicenca ? parseFloat(custoLicenca) : null,
         })
         .eq("id", id);
 
@@ -219,6 +225,18 @@ const EditLicencaTransporte = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Número da Licença */}
+              <div className="space-y-2">
+                <Label htmlFor="licencanumero">Número da Licença*</Label>
+                <Input
+                  id="licencanumero"
+                  value={licencaNumero}
+                  onChange={(e) => setLicencaNumero(e.target.value)}
+                  placeholder="Ex: LT-2023-12345"
+                  required
+                />
               </div>
 
               {/* Data Emissão */}
@@ -292,6 +310,19 @@ const EditLicencaTransporte = () => {
                 />
               </div>
 
+              {/* Custo da Licença */}
+              <div className="space-y-2">
+                <Label htmlFor="custodalicenca">Custo da Licença</Label>
+                <Input
+                  id="custodalicenca"
+                  type="number"
+                  step="0.01"
+                  value={custoLicenca}
+                  onChange={(e) => setCustoLicenca(e.target.value)}
+                  placeholder="Ex: 1500.00"
+                />
+              </div>
+
               {/* Observação */}
               <div className="space-y-2">
                 <Label>Observação</Label>
@@ -338,4 +369,3 @@ const EditLicencaTransporte = () => {
 };
 
 export default EditLicencaTransporte;
-
