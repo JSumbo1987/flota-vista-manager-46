@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Calendar } from "lucide-react";
@@ -48,6 +49,7 @@ const AddCertificado = () => {
   );
   const [proximaInspeccao, setProximaInspeccao] = useState<Date | undefined>();
   const [numeroCertificado, setNumeroCertificado] = useState("");
+  const [custoCertificado, setCustoCertificado] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
 
   useEffect(() => {
@@ -134,6 +136,7 @@ const AddCertificado = () => {
             numerocertificado: numeroCertificado,
             copiadocertificado: filePath,
             status: status,
+            custodocertificado: custoCertificado ? parseFloat(custoCertificado) : null,
           },
         ]);
 
@@ -241,6 +244,17 @@ const AddCertificado = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="custoCertificado">Custo do Certificado</Label>
+                <Input
+                  id="custoCertificado"
+                  type="number"
+                  step="0.01"
+                  value={custoCertificado}
+                  onChange={(e) => setCustoCertificado(e.target.value)}
+                  placeholder="Ex: 1500.00"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Data da Inspeção*</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -328,4 +342,3 @@ const AddCertificado = () => {
 };
 
 export default AddCertificado;
-

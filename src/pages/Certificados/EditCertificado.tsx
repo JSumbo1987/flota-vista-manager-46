@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Calendar } from "lucide-react";
@@ -48,6 +49,7 @@ const EditCertificado = () => {
   const [dataHoraInspeccao, setDataHoraInspeccao] = useState<Date>();
   const [proximaInspeccao, setProximaInspeccao] = useState<Date>();
   const [numeroCertificado, setNumeroCertificado] = useState("");
+  const [custoCertificado, setCustoCertificado] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [arquivoExistente, setArquivoExistente] = useState("");
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -82,6 +84,7 @@ const EditCertificado = () => {
         setProximaInspeccao(new Date(cert.proximainspeccao));
         setNumeroCertificado(cert.numerocertificado);
         setArquivoExistente(cert.copiadocertificado || "");
+        setCustoCertificado(cert.custodocertificado ? cert.custodocertificado.toString() : "");
         // passa direto o path
         if (cert.copiadocertificado) {
           fetchSignedUrl(cert.copiadocertificado);
@@ -160,6 +163,7 @@ const EditCertificado = () => {
           numerocertificado: numeroCertificado,
           copiadocertificado: filePath,
           status: status,
+          custodocertificado: custoCertificado ? parseFloat(custoCertificado) : null,
         })
         .eq("id", id);
 
@@ -265,6 +269,17 @@ const EditCertificado = () => {
                   value={quilometragem}
                   onChange={(e) => setQuilometragem(e.target.value)}
                   required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="custoCertificado">Custo do Certificado</Label>
+                <Input
+                  id="custoCertificado"
+                  type="number"
+                  step="0.01"
+                  value={custoCertificado}
+                  onChange={(e) => setCustoCertificado(e.target.value)}
+                  placeholder="Ex: 1500.00"
                 />
               </div>
               <div className="space-y-2">
