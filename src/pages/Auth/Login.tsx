@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import bcrypt from "bcryptjs"; // Instalar com: npm i bcryptjs
+import {salvarUsuarioCriptografado, gerarToken} from "../../components/utils/usuarioStorage";
+
 
 const Login = () => {
   const navigate = useNavigate();
@@ -62,13 +64,9 @@ const Login = () => {
     }
 
     // Aqui você pode armazenar os dados do usuário em um context ou localStorage
-    localStorage.setItem("usuario", JSON.stringify({
-      userid: user.userid,
-      useremail: user.useremail,
-      usernome: user.usernome,
-      funcionarioId: user.tblusuariofuncionario?.funcionarioid,
-      permissoes: user.tblpermissoes || [],
-    }));
+    const token = gerarToken(user);
+    salvarUsuarioCriptografado(user);
+    localStorage.setItem("usuario", token);
 
     toast({
       title: "Login realizado com sucesso!",

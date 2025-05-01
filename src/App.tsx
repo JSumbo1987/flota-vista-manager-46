@@ -43,6 +43,7 @@ import DetalhesAbastecimento from "./pages/Viaturas/DetalheAbastecimento";
 import PerfilUsuario from "./pages/Usuarios/PerfilUsuario";
 import AtribuirViatura from "./pages/Funcionarios/AtribuirViatura";
 import ListaViaturasAtribuidas from "./pages/Viaturas/ViaturasAtribuidasList";
+import AddUsuario from "./pages/Usuarios/AddUsuario";
 
 const queryClient = new QueryClient();
 
@@ -327,6 +328,14 @@ const App = () => (
               element={
                 <MainLayout>
                   <UsuariosList />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/usuarios/add"
+              element={
+                <MainLayout>
+                  <AddUsuario />
                 </MainLayout>
               }
             />

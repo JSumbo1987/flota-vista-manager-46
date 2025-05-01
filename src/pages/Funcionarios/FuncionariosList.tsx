@@ -340,7 +340,7 @@ const FuncionariosList = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
+                  <TableHead>Nome Completo</TableHead>
                   <TableHead>Nacionalidade</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Província</TableHead>

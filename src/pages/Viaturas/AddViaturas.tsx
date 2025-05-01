@@ -75,13 +75,25 @@ const AddViatura = () => {
 
     setIsSubmitting(true);
 
+    const matricula = viaturaMatricula.trim().toUpperCase();//Para Verificação no sistema.
+    const { count } = await supabase
+      .from("tblviaturas").select("*", { count: "exact", head: true }).eq("viaturamatricula", matricula);
+
+    if ((count || 0) > 0) {
+      toast({ 
+        title: "Ops", 
+        description: "A matrícula informado já existe cadastrado no sistema!", 
+        variant: "destructive" });
+      return;
+    }
+
     const { error } = await supabase.from("tblviaturas").insert({
-      viaturamatricula: viaturaMatricula,
-      viaturamarca: viaturaMarca,
-      viaturamodelo: viaturaModelo,
+      viaturamatricula: viaturaMatricula.trim().toUpperCase(),
+      viaturamarca: viaturaMarca.trim().toUpperCase(),
+      viaturamodelo: viaturaModelo.trim().toUpperCase(),
       viaturaanofabrica: viaturaAnoFabrica,
-      viaturacombustivel: viaturaCombustivel,
-      viaturacor: viaturaCor,
+      viaturacombustivel: viaturaCombustivel.trim().toUpperCase(),
+      viaturacor: viaturaCor.trim().toUpperCase(),
       quilometragem: parseFloat(quilometragem),
       viaturatipoid: parseInt(viaturaTipoId),
       viaturacategoriaid: parseInt(viaturaCategoriaId),

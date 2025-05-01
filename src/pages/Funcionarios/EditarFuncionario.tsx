@@ -49,6 +49,7 @@ const EditFuncionario = () => {
   const [categorias, setCategorias] = useState<{ categoriaid: string }[]>([]);
   const [nacionalidades, setNacionalidades] = useState<{ nacionalidadeid: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailEditable, setEmailEditable] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
@@ -90,6 +91,16 @@ const EditFuncionario = () => {
           categoriaId: data.categoriaid || "",
           estado: data.estado || "Activo",
         });
+
+        // Verifica se já possui conta vinculada
+        const { count } = await supabase
+          .from("tblusuariofuncionario")
+          .select("*", { count: "exact", head: true })
+          .eq("funcionarioid", funcionarioid);
+
+        if ((count || 0) > 0) {
+          setEmailEditable(false);
+        }
       }
     }
 
@@ -126,20 +137,23 @@ const EditFuncionario = () => {
       };
 
       const updates: any = {
-        funcionarionome: form.funcionarioNome,
-        numerobi: form.numeroBI,
-        nacionalidade: form.nacionalidade,
-        genero: form.genero,
-        provincia: form.provincia,
-        funcionarioemail: form.funcionarioEmail,
+        funcionarionome: form.funcionarioNome.trim().toUpperCase(),
+        numerobi: form.numeroBI.trim().toUpperCase(),
+        nacionalidade: form.nacionalidade.trim().toUpperCase(),
+        genero: form.genero.trim().toUpperCase(),
+        provincia: form.provincia.trim().toUpperCase(),
         funcionariotelefone: form.funcionarioTelefone,
-        cartadeconducaonr: form.CartaDeConducaoNr,
+        cartadeconducaonr: form.CartaDeConducaoNr.trim().toUpperCase(),
         dataemissao: form.DataEmissao,
         datavalidade: form.DataValidade,
-        funcaotipoid: form.funcaoTipoId,
-        categoriaid: form.categoriaId,
+        funcaotipoid: form.funcaoTipoId.trim().toUpperCase(),
+        categoriaid: form.categoriaId.trim().toUpperCase(),
         estado: form.estado,
       };
+
+      if (emailEditable) {
+        updates.funcionarioemail = form.funcionarioEmail.trim().toLowerCase();
+      }
 
       if (files.copiabi) updates.copiabi = await uploadFile(files.copiabi, "copiaBI");
       if (files.copiacartaconducao) updates.copiacartaconducao = await uploadFile(files.copiacartaconducao, "cartaConducao");
@@ -198,7 +212,13 @@ const EditFuncionario = () => {
               </div>
               <div>
                 <Label>Email</Label>
-                <Input name="funcionarioEmail" type="email" value={form.funcionarioEmail} onChange={handleChange} />
+                <Input
+                  name="funcionarioEmail"
+                  type="email"
+                  value={form.funcionarioEmail}
+                  onChange={handleChange}
+                  disabled={!emailEditable}
+                />
               </div>
               <div>
                 <Label>Gênero*</Label>
@@ -288,3 +308,4 @@ const EditFuncionario = () => {
 };
 
 export default EditFuncionario;
+

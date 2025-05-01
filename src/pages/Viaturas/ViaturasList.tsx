@@ -163,9 +163,8 @@ const ViaturasList = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Viatura (Marca/Modelo)</TableHead>
                 <TableHead>Matrícula</TableHead>
-                <TableHead>Marca</TableHead>
-                <TableHead>Modelo</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Cor</TableHead>
@@ -176,9 +175,8 @@ const ViaturasList = () => {
             <TableBody>
               {viaturas.map((viatura) => (
                 <TableRow key={viatura.viaturaid}>
+                  <TableCell>{viatura.viaturamarca} {viatura.viaturamodelo}</TableCell>
                   <TableCell>{viatura.viaturamatricula}</TableCell>
-                  <TableCell>{viatura.viaturamarca}</TableCell>
-                  <TableCell>{viatura.viaturamodelo}</TableCell>
                   <TableCell>{viatura.tblviaturatipo.viaturatipo}</TableCell>
                   <TableCell>{viatura.tblviaturacategoria.viaturacategoria}</TableCell>
                   <TableCell>{viatura.viaturacor}</TableCell>

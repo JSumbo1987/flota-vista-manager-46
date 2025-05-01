@@ -110,24 +110,42 @@ const AddFuncionario = () => {
         return filePath;
       };
 
+      const email = form.funcionarioEmail.trim().toLowerCase();//Para Verificação no sistema.
+      const numeroCarta = form.CartaDeConducaoNr.trim().toUpperCase();//Para Verificação no sistema.
       const copiaBIUrl = files.copiabi ? await uploadFile(files.copiabi, "copiaBI") : null;
       const copiaCartaConducaoUrl = files.copiacartaconducao ? await uploadFile(files.copiacartaconducao, "cartaConducao") : null;
       const copiaLicencaConducaoUrl = files.copialicencaconducao ? await uploadFile(files.copialicencaconducao, "licencaConducao") : null;
       const fotografiaUrl = files.fotografia ? await uploadFile(files.fotografia, "fotografia") : null;
 
+      const [{ count: usuarioCount }, { count: funcionarioCount }, { count: numeroCartaCount }] = await Promise.all([
+        supabase.from("tblusuarios").select("*", { count: "exact", head: true }).eq("useremail", email),
+        supabase.from("tblfuncionarios").select("*", { count: "exact", head: true }).eq("funcionarioemail", email),
+        supabase.from("tblfuncionarios").select("*", { count: "exact", head: true }).eq("cartadeconducaonr", numeroCarta),
+      ]);
+
+      if ((usuarioCount || 0) > 0 || (funcionarioCount || 0) > 0) {
+        toast({ title: "Ops", description: "O e-mail informado já existe cadastrado no sistema!", variant: "destructive" });
+        return;
+      }
+
+      if ((numeroCartaCount || 0) > 0) {
+        toast({ title: "Ops", description: "O número da carta de condução já existe cadastrado no sistema!", variant: "destructive" });
+        return;
+      }
+
       const { error } = await supabase.from("tblfuncionarios").insert({
-        funcionarionome: form.funcionarioNome,
-        numerobi: form.numeroBI,
-        nacionalidade: form.nacionalidade,
-        genero: form.genero,
-        provincia: form.provincia,
+        funcionarionome: form.funcionarioNome.trim().toUpperCase(),
+        numerobi: form.numeroBI.trim().toUpperCase(),
+        nacionalidade: form.nacionalidade.trim().toUpperCase(),
+        genero: form.genero.trim().toUpperCase(),
+        provincia: form.provincia.trim().toUpperCase(),
         funcionarioemail: form.funcionarioEmail,
         funcionariotelefone: form.funcionarioTelefone,
-        cartadeconducaonr: form.CartaDeConducaoNr,
+        cartadeconducaonr: form.CartaDeConducaoNr.trim().toUpperCase(),
         dataemissao: form.DataEmissao,
         datavalidade: form.DataValidade,
-        funcaotipoid: form.funcaoTipoId,
-        categoriaid: form.categoriaId,
+        funcaotipoid: form.funcaoTipoId.trim().toUpperCase(),
+        categoriaid: form.categoriaId.trim().toUpperCase(),
         copiabi: copiaBIUrl,
         copiacartaconducao: copiaCartaConducaoUrl,
         copialicencaconducao: copiaLicencaConducaoUrl,
