@@ -8,9 +8,13 @@ interface Certificado {
   centroinspeccao: string;
   datahorainspeccao: string;
   proximainspeccao: string;
+  numerodoquadro?: string;
+  quilometragem?: string;
   observacoes?: string;
-  certificadostatus: string;
-  copiacertificado: string;
+  certificadostatus?: string;
+  status?: string;
+  copiadocertificado?: string;
+  copiacertificado?: string;
   tblviaturas: {
     viaturaid: string;
     viaturamarca: string;
