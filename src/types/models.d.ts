@@ -79,6 +79,7 @@ interface Usuario {
   useremailconfirmed?: boolean;
   isfastlogin?: number;
   estado?: string;
+  funcionarioid?: string;
   // Other user properties
 }
 
@@ -94,6 +95,32 @@ interface PerfilUsuarioData {
     gruponame: string;
   };
   tblusuariofuncionario?: {
+    tblfuncionarios?: {
+      funcionarionome: string;
+      funcionarioemail: string;
+      funcaotipoid: string;
+      categoriaid: string;
+      fotografia?: string | null;
+    };
+  };
+}
+
+// UserDetails type for UserDetailsModal
+interface UserDetails {
+  userid: string;
+  usernome: string;
+  useremail: string;
+  estado: string;
+  issuperusuario: boolean;
+  isfastlogin: number;
+  useremailconfirmed: boolean;
+  tbltipousuarios: {
+    descricao: string;
+  };
+  tblgrupousuarios: {
+    nome: string;
+  };
+  tblusuariofuncionario: {
     tblfuncionarios?: {
       funcionarionome: string;
       funcionarioemail: string;

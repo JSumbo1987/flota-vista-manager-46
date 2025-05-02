@@ -9,17 +9,6 @@ interface Props {
   userid?: string;
 }
 
-// Function to verify token (since it was missing)
-const verificarToken = (token: string): { valido: boolean, usuario: any } => {
-  const autenticado = estaAutenticado();
-  const usuario = obterUsuario();
-  
-  return {
-    valido: autenticado && !!token,
-    usuario: usuario
-  };
-};
-
 const ProtecaoDeAcesso: React.FC<Props> = ({ children, userid }) => {
   const navigate = useNavigate();
 
@@ -35,9 +24,10 @@ const ProtecaoDeAcesso: React.FC<Props> = ({ children, userid }) => {
       }
       
       // Verifica se o token é válido
-      const { valido, usuario } = verificarToken(token);
+      const autenticado = estaAutenticado();
+      const usuario = obterUsuario();
       
-      if (!valido || !usuario) {
+      if (!autenticado || !usuario) {
         // Token inválido ou expirado, redireciona para login
         localStorage.removeItem("token");
         navigate("/login");

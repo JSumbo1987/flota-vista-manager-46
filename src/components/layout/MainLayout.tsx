@@ -65,6 +65,20 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 <Menu className="h-5 w-5" />
               </Button>
 
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebarCollapse}
+                className="hidden lg:flex"
+                title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+
               <div
                 className={cn(
                   "flex items-center transition-all duration-300 ease-in-out",
