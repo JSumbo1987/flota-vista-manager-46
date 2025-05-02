@@ -4,7 +4,6 @@ import { Bell, Check, Trash, Filter, RefreshCcw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -17,6 +16,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useAuth } from "@/pages/Auth/AuthContext";
+import NotificationItem from "@/components/notifications/NotificationItem";
+import LoadingState from "@/components/ui/loading-state";
+import EmptyState from "@/components/ui/empty-state";
 
 interface Notificacao {
   id: string;
@@ -167,16 +169,6 @@ const NotificacoesList = () => {
     }
   };
 
-  const getBadgeVariant = (tipo: Notificacao['tipo']) => {
-    switch (tipo) {
-      case 'info': return 'secondary';
-      case 'warning': return 'warning';
-      case 'error': return 'destructive';
-      case 'success': return 'success';
-      default: return 'secondary';
-    }
-  };
-
   const formatarData = (data: string) => {
     try {
       return format(new Date(data), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: pt });
@@ -186,18 +178,14 @@ const NotificacoesList = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center">
-            <Bell className="mr-2 h-6 w-6" />
-            Notificações
-          </h2>
-          <p className="text-muted-foreground">
-            Gerencie todas as suas notificações do sistema
-          </p>
+          <CardTitle>Suas notificações</CardTitle>
+          <CardDescription>
+            {notificacoes.filter(n => !n.lida).length} notificações não lidas
+          </CardDescription>
         </div>
-
         <div className="flex items-center space-x-2">
           <Select value={filtro} onValueChange={(value) => setFiltro(value as any)}>
             <SelectTrigger className="w-[180px]">
@@ -213,13 +201,14 @@ const NotificacoesList = () => {
             </SelectContent>
           </Select>
           
-          <Button variant="outline" onClick={carregarNotificacoes}>
+          <Button variant="outline" onClick={carregarNotificacoes} size="icon">
             <RefreshCcw className="h-4 w-4" />
           </Button>
 
           <Button variant="secondary" onClick={marcarTodasComoLidas}>
             <Check className="h-4 w-4 mr-2" />
-            Marcar todas como lidas
+            <span className="hidden sm:inline">Marcar todas como lidas</span>
+            <span className="sm:hidden">Marcar todas</span>
           </Button>
         </div>
       </div>

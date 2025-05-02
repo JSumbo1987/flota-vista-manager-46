@@ -1,61 +1,74 @@
 
-// utils/usuarioStorage.ts
-import CryptoJS from "crypto-js";
+const USUARIO_STORAGE_KEY = 'usuario_logado';
 
+export interface Usuario {
+  id: string;
+  nome: string;
+  email: string;
+  perfil: string;
+  foto?: string;
+  token?: string;
+  tokenExpiracao?: string;
+}
 
-const CHAVE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-export const salvarUsuarioCriptografado = (usuario) => {
-  const criptografado = CryptoJS.AES.encrypt(JSON.stringify(usuario), CHAVE).toString();
-  localStorage.setItem("usuario", criptografado);
-};
-
-export const obterUsuarioDescriptografado = () => {
-  const dados = localStorage.getItem("usuario");
-  if (!dados) return null;
+// Função para obter o usuário do storage
+export const obterUsuario = (): Usuario | null => {
+  const usuarioJSON = localStorage.getItem(USUARIO_STORAGE_KEY);
+  if (!usuarioJSON) return null;
+  
   try {
-    const bytes = CryptoJS.AES.decrypt(dados, CHAVE);
-    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+    const usuario = JSON.parse(usuarioJSON) as Usuario;
+    return usuario;
   } catch (error) {
-    console.error("Erro ao descriptografar dados:", error);
+    console.error('Erro ao ler dados do usuário:', error);
     return null;
   }
 };
 
-export const limparUsuario = () => {
-  localStorage.removeItem("usuario");
+// Função para salvar o usuário no storage
+export const salvarUsuario = (usuario: Usuario): void => {
+  try {
+    localStorage.setItem(USUARIO_STORAGE_KEY, JSON.stringify(usuario));
+  } catch (error) {
+    console.error('Erro ao salvar dados do usuário:', error);
+  }
 };
 
-// Gera um token JWT com os dados do usuário
-export function gerarToken(usuario) {
-  // Criamos um objeto com os dados do usuário e a expiração
-  const payload = {
-    id: usuario.userid,
-    nome: usuario.usernome,
-    email: usuario.useremail,
-    funcionarioid: usuario.tblusuariofuncionario?.funcionarioid,
-    exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hora de expiração
-  };
-  
-  // Criptografamos o payload inteiro usando CryptoJS
-  return CryptoJS.AES.encrypt(JSON.stringify(payload), CHAVE).toString();
-}
+// Função para limpar o usuário do storage
+export const limparUsuario = (): void => {
+  localStorage.removeItem(USUARIO_STORAGE_KEY);
+};
 
-// Verifica o token e retorna os dados do usuário logado
-export function verificarToken(token) {
+// Função para verificar se o usuário está autenticado
+export const estaAutenticado = (): boolean => {
+  const usuario = obterUsuario();
+  return !!usuario;
+};
+
+// Função para verificar se o token do usuário está expirado
+export const tokenExpirado = (): boolean => {
+  const usuario = obterUsuario();
+  if (!usuario?.tokenExpiracao) return true;
+  
   try {
-    // Descriptografamos o token
-    const bytes = CryptoJS.AES.decrypt(token, CHAVE);
-    const decoded = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-    
-    // Verificamos se o token expirou
-    const agora = Math.floor(Date.now() / 1000);
-    if (decoded.exp < agora) {
-      return { valido: false, erro: "Token expirado" };
-    }
-    
-    return { valido: true, usuario: decoded };
-  } catch (erro) {
-    return { valido: false, erro: erro.message };
+    const dataExpiracao = new Date(usuario.tokenExpiracao);
+    return dataExpiracao < new Date();
+  } catch (error) {
+    console.error('Erro ao verificar expiração do token:', error);
+    return true;
   }
-}*/
+};
+
+// Função para obter o token do usuário
+export const obterToken = (): string => {
+  const usuario = obterUsuario();
+  return usuario?.token || '';
+};
+
+// Função para verificar se o usuário tem um determinado perfil
+export const temPerfil = (perfil: string): boolean => {
+  const usuario = obterUsuario();
+  if (!usuario) return false;
+  
+  return usuario.perfil === perfil;
+};

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -7,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface TipoUsuario {
   tipousuarioid: string;
@@ -38,30 +41,41 @@ const AddUsuario = () => {
 
   useEffect(() => {
     async function fetchData() {
-      const { data: tipos } = await supabase.from("tbltipousuarios").select("*");
-      setTiposUsuario(tipos || []);
+      try {
+        const [tiposResponse, gruposResponse, superResponse] = await Promise.all([
+          supabase.from("tbltipousuarios").select("*"),
+          supabase.from("tblgrupousuarios").select("*"),
+          supabase.from("tblusuarios").select("*", { count: "exact", head: true }).eq("issuperusuario", true)
+        ]);
 
-      const { data: grupos } = await supabase.from("tblgrupousuarios").select("*");
-      setGruposUsuario(grupos || []);
-
-      const { count } = await supabase
-        .from("tblusuarios")
-        .select("*", { count: "exact", head: true })
-        .eq("issuperusuario", true);
-
-      setSuperUsuarioExiste((count || 0) > 0);
+        setTiposUsuario(tiposResponse.data || []);
+        setGruposUsuario(gruposResponse.data || []);
+        setSuperUsuarioExiste((superResponse.count || 0) > 0);
+      } catch (error) {
+        console.error("Erro ao carregar dados iniciais:", error);
+        toast({
+          title: "Erro ao carregar dados",
+          description: "Não foi possível carregar as informações necessárias",
+          variant: "destructive",
+        });
+      }
     }
 
     fetchData();
-  }, []);
+  }, [toast]);
 
-  function handleChange(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  }
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSwitchChange = (checked: boolean) => {
+    setForm((prev) => ({ ...prev, issuperusuario: checked }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,20 +84,25 @@ const AddUsuario = () => {
     try {
       const email = form.useremail.trim().toLowerCase();
 
-      const [{ count: usuarioCount }, { count: funcionarioCount }] = await Promise.all([
+      const [usuarioResponse, funcionarioResponse] = await Promise.all([
         supabase.from("tblusuarios").select("*", { count: "exact", head: true }).eq("useremail", email),
         supabase.from("tblfuncionarios").select("*", { count: "exact", head: true }).eq("funcionarioemail", email),
       ]);
 
-      if ((usuarioCount || 0) > 0 || (funcionarioCount || 0) > 0) {
-        toast({ title: "Ops", description: "O e-mail informado já existe cadastrado no sistema!", variant: "destructive" });
+      if ((usuarioResponse.count || 0) > 0 || (funcionarioResponse.count || 0) > 0) {
+        toast({ 
+          title: "Ops", 
+          description: "O e-mail informado já existe cadastrado no sistema!", 
+          variant: "destructive" 
+        });
+        setIsSubmitting(false);
         return;
       }
 
       const { error } = await supabase.from("tblusuarios").insert({
         usernome: form.usernome,
         useremail: email,
-        userpassword: form.userpassword, // Hash se necessário
+        userpassword: form.userpassword,
         tipousuarioid: form.tipousuarioid,
         grupousuarioid: form.grupousuarioid,
         estado: "activo",
@@ -98,7 +117,11 @@ const AddUsuario = () => {
       navigate("/usuarios");
     } catch (err) {
       console.error(err);
-      toast({ title: "Erro ao cadastrar usuário", description: String(err), variant: "destructive" });
+      toast({ 
+        title: "Erro ao cadastrar usuário", 
+        description: String(err), 
+        variant: "destructive" 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -122,61 +145,82 @@ const AddUsuario = () => {
             <CardTitle>Informações do Usuário</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Nome*</Label>
-              <Input name="usernome" value={form.usernome} onChange={handleChange} required />
+            <div className="space-y-2">
+              <Label htmlFor="usernome">Nome*</Label>
+              <Input 
+                id="usernome"
+                name="usernome" 
+                value={form.usernome} 
+                onChange={handleInputChange} 
+                required 
+              />
             </div>
-            <div>
-              <Label>Email*</Label>
-              <Input type="email" name="useremail" value={form.useremail} onChange={handleChange} required />
+            <div className="space-y-2">
+              <Label htmlFor="useremail">Email*</Label>
+              <Input 
+                id="useremail"
+                type="email" 
+                name="useremail" 
+                value={form.useremail} 
+                onChange={handleInputChange} 
+                required 
+              />
             </div>
-            <div>
-              <Label>Senha*</Label>
-              <Input type="password" name="userpassword" value={form.userpassword} onChange={handleChange} required />
+            <div className="space-y-2">
+              <Label htmlFor="userpassword">Senha*</Label>
+              <Input 
+                id="userpassword"
+                type="password" 
+                name="userpassword" 
+                value={form.userpassword} 
+                onChange={handleInputChange} 
+                required 
+              />
             </div>
-            <div>
-              <Label>Tipo de Usuário*</Label>
-              <select
-                name="tipousuarioid"
-                value={form.tipousuarioid}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                required
+            <div className="space-y-2">
+              <Label htmlFor="tipousuarioid">Tipo de Usuário*</Label>
+              <Select 
+                value={form.tipousuarioid} 
+                onValueChange={(value) => handleSelectChange("tipousuarioid", value)}
               >
-                <option value="">Selecione</option>
-                {tiposUsuario.map((tipo) => (
-                  <option key={tipo.tipoid} value={tipo.tipoid}>
-                    {tipo.descricaotipo}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiposUsuario.map((tipo) => (
+                    <SelectItem key={tipo.tipousuarioid} value={tipo.tipousuarioid}>
+                      {tipo.descricao}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label>Grupo de Usuário*</Label>
-              <select
-                name="grupousuarioid"
-                value={form.grupousuarioid}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                required
+            <div className="space-y-2">
+              <Label htmlFor="grupousuarioid">Grupo de Usuário*</Label>
+              <Select 
+                value={form.grupousuarioid} 
+                onValueChange={(value) => handleSelectChange("grupousuarioid", value)}
               >
-                <option value="">Selecione</option>
-                {gruposUsuario.map((grupo) => (
-                  <option key={grupo.grupoid} value={grupo.grupoid}>
-                    {grupo.gruponame}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gruposUsuario.map((grupo) => (
+                    <SelectItem key={grupo.grupousuarioid} value={grupo.grupousuarioid}>
+                      {grupo.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {!superUsuarioExiste && (
               <div className="col-span-2 flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  name="issuperusuario"
+                <Switch 
+                  id="issuperusuario"
                   checked={form.issuperusuario}
-                  onChange={handleChange}
+                  onCheckedChange={handleSwitchChange}
                 />
-                <Label>Super Usuário</Label>
+                <Label htmlFor="issuperusuario">Super Usuário</Label>
               </div>
             )}
           </CardContent>

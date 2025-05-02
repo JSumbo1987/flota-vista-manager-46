@@ -15,8 +15,7 @@ import {
   FileCheck, 
   Truck, 
   Award,
-  ChevronLeft,
-  ChevronRight
+  Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -94,21 +93,21 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   return (
     <div className={cn("h-full bg-sidebar flex flex-col border-r border-sidebar-border transition-all duration-300", 
       collapsed ? "w-16" : "w-64")}>
-      {/* Logo */}
-      <div className={cn("p-6 flex items-center", collapsed ? "justify-center" : "")}>
-        <Car className={cn("h-6 w-6", collapsed ? "mr-0" : "mr-2")} />
-        {!collapsed && <h1 className="text-xl font-bold text-white">Flota Vista</h1>}
+      {/* Logo e botão de colapso */}
+      <div className="p-6 flex items-center justify-between">
+        <div className="flex items-center">
+          <Car className={cn("h-6 w-6", collapsed ? "mr-0" : "mr-2")} />
+          {!collapsed && <h1 className="text-xl font-bold text-white">Flota Vista</h1>}
+        </div>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleCollapse}
+          className="text-white p-0 h-6 w-6"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
       </div>
-
-      {/* Collapse button */}
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={toggleCollapse} 
-        className="absolute top-6 right-0 transform translate-x-1/2 bg-primary text-primary-foreground rounded-full p-0 h-6 w-6 flex items-center justify-center"
-      >
-        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-      </Button>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto flota-scrollbar">
