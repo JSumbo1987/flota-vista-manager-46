@@ -19,12 +19,12 @@ import { pt } from "date-fns/locale";
 import { useAuth } from "@/pages/Auth/AuthContext";
 
 interface Notificacao {
-  notificacaoid: string;
+  id: string;
   titulo: string;
   mensagem: string;
   datahora: string;
   tipo: "info" | "warning" | "success" | "error";
-  lida: boolean;
+  lido: boolean;
   usuarioid: string;
   actionurl?: string;
   criado_em: string;
@@ -48,23 +48,23 @@ const NotificacoesList = () => {
       let query = supabase
         .from("tblnotificacoes")
         .select("*")
-        .order("criado_em", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (usuario?.id) {
         query = query.eq("usuarioid", usuario.id);
       }
 
       if (filtro === "lidas") {
-        query = query.eq("lida", true);
+        query = query.eq("lido", true);
       } else if (filtro === "nao-lidas") {
-        query = query.eq("lida", false);
+        query = query.eq("lido", false);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
-      
       setNotificacoes(data || []);
+      console.log(notificacoes);
     } catch (error) {
       console.error("Erro ao carregar notificações:", error);
       toast({
@@ -81,14 +81,14 @@ const NotificacoesList = () => {
     try {
       const { error } = await supabase
         .from("tblnotificacoes")
-        .update({ lida: true })
-        .eq("notificacaoid", id);
+        .update({ lido: true })
+        .eq("id", id);
 
       if (error) throw error;
 
       setNotificacoes(prev => 
         prev.map(notif => 
-          notif.notificacaoid === id ? { ...notif, lida: true } : notif
+          notif.id === id ? { ...notif, lido: true } : notif
         )
       );
 
@@ -110,12 +110,12 @@ const NotificacoesList = () => {
       const { error } = await supabase
         .from("tblnotificacoes")
         .delete()
-        .eq("notificacaoid", id);
+        .eq("id", id);
 
       if (error) throw error;
 
       setNotificacoes(prev => 
-        prev.filter(notif => notif.notificacaoid !== id)
+        prev.filter(notif => notif.id !== id)
       );
 
       toast({
@@ -133,7 +133,7 @@ const NotificacoesList = () => {
 
   const marcarTodasComoLidas = async () => {
     try {
-      const notificacoesNaoLidas = notificacoes.filter(n => !n.lida).map(n => n.notificacaoid);
+      const notificacoesNaoLidas = notificacoes.filter(n => !n.lido).map(n => n.id);
       
       if (notificacoesNaoLidas.length === 0) {
         toast({
@@ -145,13 +145,13 @@ const NotificacoesList = () => {
 
       const { error } = await supabase
         .from("tblnotificacoes")
-        .update({ lida: true })
-        .in("notificacaoid", notificacoesNaoLidas);
+        .update({ lido: true })
+        .in("id", notificacoesNaoLidas);
 
       if (error) throw error;
 
       setNotificacoes(prev => 
-        prev.map(notif => ({ ...notif, lida: true }))
+        prev.map(notif => ({ ...notif, lido: true }))
       );
 
       toast({
@@ -228,7 +228,7 @@ const NotificacoesList = () => {
         <CardHeader>
           <CardTitle>Suas notificações</CardTitle>
           <CardDescription>
-            {notificacoes.filter(n => !n.lida).length} notificações não lidas
+            {notificacoes.filter(n => !n.lido).length} notificações não lidas
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -248,8 +248,8 @@ const NotificacoesList = () => {
             <div className="space-y-4">
               {notificacoes.map((notif) => (
                 <div 
-                  key={notif.notificacaoid}
-                  className={`p-4 rounded-md border ${notif.lida ? 'bg-muted/30' : 'bg-card'}`}
+                  key={notif.id}
+                  className={`p-4 rounded-md border ${notif.lido ? 'bg-muted/30' : 'bg-card'}`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4">
@@ -261,7 +261,7 @@ const NotificacoesList = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium">{notif.titulo}</h4>
-                          {!notif.lida && (
+                          {!notif.lido && (
                             <Badge variant="default" className="text-xs">Nova</Badge>
                           )}
                         </div>
@@ -272,11 +272,11 @@ const NotificacoesList = () => {
                       </div>
                     </div>
                     <div className="flex space-x-1">
-                      {!notif.lida && (
+                      {!notif.lido && (
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => marcarComoLida(notif.notificacaoid)}
+                          onClick={() => marcarComoLida(notif.id)}
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -284,7 +284,7 @@ const NotificacoesList = () => {
                       <Button 
                         variant="ghost" 
                         size="icon"
-                        onClick={() => excluirNotificacao(notif.notificacaoid)}
+                        onClick={() => excluirNotificacao(notif.id)}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
