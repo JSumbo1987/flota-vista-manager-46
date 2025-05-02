@@ -48,3 +48,4 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
   return { notifications, loading, error, refetch: fetchNotifications };
 }
 
+
