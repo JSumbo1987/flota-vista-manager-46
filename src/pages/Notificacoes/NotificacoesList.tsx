@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Bell, Check, Trash, Filter, RefreshCcw } from "lucide-react";
 import {
@@ -35,17 +36,17 @@ interface Notificacao {
   criado_em: string;
 }
 
-const getBadgeVariant = (tipo: Notificacao["tipo"]) => {
+const getBadgeVariantClass = (tipo: Notificacao["tipo"]) => {
   switch (tipo) {
     case "success":
-      return "green-600";
+      return "text-green-600 bg-green-100";
     case "warning":
-      return "yellow-600";
+      return "text-yellow-600 bg-yellow-100";
     case "error":
-      return "red-600";
+      return "text-red-600 bg-red-100";
     case "info":
     default:
-      return "blue-600";
+      return "text-blue-600 bg-blue-100";
   }
 };
 
@@ -245,7 +246,7 @@ const NotificacoesList = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
                     <div
-                      className={`p-2 rounded-full bg-${getBadgeVariant(notif.tipo)}/20 text-${getBadgeVariant(notif.tipo)}`}
+                      className={`p-2 rounded-full ${getBadgeVariantClass(notif.tipo)}`}
                     >
                       <Bell className="h-5 w-5" />
                     </div>

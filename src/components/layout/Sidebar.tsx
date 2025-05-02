@@ -14,13 +14,16 @@ import {
   Home, 
   FileCheck, 
   Truck, 
-  Award
+  Award,
+  Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   onClose?: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 interface NavItemProps {
@@ -48,10 +51,9 @@ const NavItem = ({ icon: Icon, label, href, isActive, onClick, collapsed }: NavI
   );
 };
 
-const Sidebar = ({ onClose }: SidebarProps) => {
+const Sidebar = ({ onClose, collapsed, onToggleCollapse }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
   
   const handleNavigation = (path: string) => {
     navigate(path);
