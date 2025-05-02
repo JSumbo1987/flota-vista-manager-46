@@ -14,8 +14,7 @@ import {
   Home, 
   FileCheck, 
   Truck, 
-  Award,
-  Menu
+  Award
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -59,10 +58,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     if (onClose) onClose();
   };
 
-  const toggleCollapse = () => {
-    setCollapsed(!collapsed);
-  };
-
   const navItems = [
     { icon: Home, label: "Dashboard", href: "/" },
     { icon: Car, label: "Viaturas", href: "/viaturas" },
@@ -93,20 +88,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   return (
     <div className={cn("h-full bg-sidebar flex flex-col border-r border-sidebar-border transition-all duration-300", 
       collapsed ? "w-16" : "w-64")}>
-      {/* Logo e botão de colapso */}
-      <div className="p-6 flex items-center justify-between">
-        <div className="flex items-center">
-          <Car className={cn("h-6 w-6", collapsed ? "mr-0" : "mr-2")} />
-          {!collapsed && <h1 className="text-xl font-bold text-white">Flota Vista</h1>}
-        </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={toggleCollapse}
-          className="text-white p-0 h-6 w-6"
-        >
-          <Menu className="h-4 w-4" />
-        </Button>
+      {/* Logo */}
+      <div className="p-6 flex items-center">
+        <Car className={cn("h-6 w-6", collapsed ? "mr-0" : "mr-2")} />
+        {!collapsed && <h1 className="text-xl font-bold text-white">Flota Vista</h1>}
       </div>
 
       {/* Navigation */}

@@ -1,7 +1,9 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Shield, Bell, Database, User, Building, Car, Key, Lock, Globe, Mail } from "lucide-react";
+import { 
+  Settings, Shield, Bell, Database, User, Building, Car, Key, Lock, Globe, Mail, 
+  Users, Edit, Trash2, Eye, Plus
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,6 +34,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/pages/Auth/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
+
+interface MenuPermission {
+  id: string;
+  name: string;
+  canInsert: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canView: boolean;
+}
 
 const ConfiguracoesList = () => {
   const { toast } = useToast();
@@ -65,14 +76,128 @@ const ConfiguracoesList = () => {
   const [emailEmpresa, setEmailEmpresa] = useState("");
   const [logoEmpresa, setLogoEmpresa] = useState<File | null>(null);
 
+  // Estados para configurações de permissões
+  const [selectedPermissionType, setSelectedPermissionType] = useState<"users" | "groups">("users");
+  const [selectedUser, setSelectedUser] = useState<string>("");
+  const [selectedGroup, setSelectedGroup] = useState<string>("");
+  const [users, setUsers] = useState<{id: string, name: string}[]>([]);
+  const [groups, setGroups] = useState<{id: string, name: string}[]>([]);
+  const [menuPermissions, setMenuPermissions] = useState<MenuPermission[]>([
+    { id: "dashboard", name: "Dashboard", canInsert: false, canEdit: false, canDelete: false, canView: true },
+    { id: "viaturas", name: "Viaturas", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "funcionarios", name: "Funcionários", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "agendamentos", name: "Agendamentos", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "servicos", name: "Serviços", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "checklist", name: "Checklist", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "certificados", name: "Certificados", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "licenca-transporte", name: "Licença Transporte", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "licenca-publicidade", name: "Licença Publicidade", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "usuarios", name: "Usuários", canInsert: true, canEdit: true, canDelete: true, canView: true },
+    { id: "notificacoes", name: "Notificações", canInsert: false, canEdit: true, canDelete: true, canView: true },
+    { id: "configuracoes", name: "Configurações", canInsert: false, canEdit: true, canDelete: false, canView: true },
+  ]);
+
   const [isSaving, setIsSaving] = useState(false);
+
+  // Carrega usuários e grupos quando o componente é montado
+  useEffect(() => {
+    if (isAdmin) {
+      fetchUsers();
+      fetchGroups();
+    }
+  }, [isAdmin]);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tblusuarios')
+        .select('userid, usernome')
+        .order('usernome');
+      
+      if (error) throw error;
+      
+      setUsers(data.map(user => ({
+        id: user.userid,
+        name: user.usernome
+      })));
+      
+      if (data.length > 0) {
+        setSelectedUser(data[0].userid);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar a lista de usuários",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tblgrupousuarios')
+        .select('id, nome')
+        .order('nome');
+      
+      if (error) throw error;
+      
+      setGroups(data.map(group => ({
+        id: group.id,
+        name: group.nome
+      })));
+      
+      if (data.length > 0) {
+        setSelectedGroup(data[0].id);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar grupos:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar a lista de grupos",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePermissionChange = (menuId: string, permission: 'canInsert' | 'canEdit' | 'canDelete' | 'canView', value: boolean) => {
+    setMenuPermissions(prev => 
+      prev.map(menu => 
+        menu.id === menuId 
+          ? { ...menu, [permission]: value }
+          : menu
+      )
+    );
+  };
+
+  const handleSavePermissions = async () => {
+    setIsSaving(true);
+    
+    try {
+      // Aqui iríamos salvar as configurações de permissões no banco de dados
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Permissões salvas",
+        description: `As permissões para ${selectedPermissionType === 'users' ? 'o usuário' : 'o grupo'} foram atualizadas com sucesso.`
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao salvar as permissões.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSaveGeneral = async () => {
     setIsSaving(true);
     
     try {
       // Aqui iríamos salvar as configurações gerais no banco de dados
-      // Por enquanto, só simulamos com um timeout
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
@@ -183,6 +308,7 @@ const ConfiguracoesList = () => {
                   <TabsTrigger value="email">Email</TabsTrigger>
                   <TabsTrigger value="empresa">Empresa</TabsTrigger>
                   <TabsTrigger value="seguranca">Segurança</TabsTrigger>
+                  <TabsTrigger value="permissoes">Permissões</TabsTrigger>
                 </>
               )}
             </TabsList>
@@ -558,6 +684,151 @@ const ConfiguracoesList = () => {
                     disabled={true}
                   >
                     Salvar Configurações
+                  </Button>
+                </>
+              ) : (
+                <p>Você não tem permissão para acessar esta seção.</p>
+              )}
+            </TabsContent>
+            
+            {/* Configurações de Permissões (apenas admin) */}
+            <TabsContent value="permissoes" className="space-y-4">
+              {isAdmin ? (
+                <>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-4">
+                      <Button 
+                        variant={selectedPermissionType === "users" ? "default" : "outline"} 
+                        onClick={() => setSelectedPermissionType("users")}
+                        className="flex items-center gap-2"
+                      >
+                        <User className="h-4 w-4" />
+                        <span>Usuários</span>
+                      </Button>
+                      <Button 
+                        variant={selectedPermissionType === "groups" ? "default" : "outline"} 
+                        onClick={() => setSelectedPermissionType("groups")}
+                        className="flex items-center gap-2"
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Grupos de Usuários</span>
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="user-or-group">
+                        {selectedPermissionType === "users" ? "Usuário" : "Grupo de Usuários"}
+                      </Label>
+                      
+                      {selectedPermissionType === "users" ? (
+                        <Select value={selectedUser} onValueChange={setSelectedUser}>
+                          <SelectTrigger id="user-select">
+                            <SelectValue placeholder="Selecione um usuário" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users.map(user => (
+                              <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                          <SelectTrigger id="group-select">
+                            <SelectValue placeholder="Selecione um grupo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {groups.map(group => (
+                              <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    
+                    <Separator className="my-6" />
+                    
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Menu</TableHead>
+                            <TableHead className="text-center w-24">
+                              <div className="flex items-center justify-center gap-1">
+                                <Plus className="h-4 w-4" />
+                                <span>Inserir</span>
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-center w-24">
+                              <div className="flex items-center justify-center gap-1">
+                                <Edit className="h-4 w-4" />
+                                <span>Editar</span>
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-center w-24">
+                              <div className="flex items-center justify-center gap-1">
+                                <Trash2 className="h-4 w-4" />
+                                <span>Excluir</span>
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-center w-24">
+                              <div className="flex items-center justify-center gap-1">
+                                <Eye className="h-4 w-4" />
+                                <span>Visualizar</span>
+                              </div>
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {menuPermissions.map(menu => (
+                            <TableRow key={menu.id}>
+                              <TableCell className="font-medium">{menu.name}</TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex justify-center">
+                                  <Switch
+                                    checked={menu.canInsert}
+                                    onCheckedChange={(value) => handlePermissionChange(menu.id, 'canInsert', value)}
+                                    disabled={menu.id === "dashboard" || menu.id === "notificacoes" || menu.id === "configuracoes"}
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex justify-center">
+                                  <Switch
+                                    checked={menu.canEdit}
+                                    onCheckedChange={(value) => handlePermissionChange(menu.id, 'canEdit', value)}
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex justify-center">
+                                  <Switch
+                                    checked={menu.canDelete}
+                                    onCheckedChange={(value) => handlePermissionChange(menu.id, 'canDelete', value)}
+                                    disabled={menu.id === "dashboard" || menu.id === "configuracoes"}
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex justify-center">
+                                  <Switch
+                                    checked={menu.canView}
+                                    onCheckedChange={(value) => handlePermissionChange(menu.id, 'canView', value)}
+                                  />
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleSavePermissions} 
+                    className="mt-4 w-full sm:w-auto" 
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Salvando..." : "Salvar Permissões"}
                   </Button>
                 </>
               ) : (
