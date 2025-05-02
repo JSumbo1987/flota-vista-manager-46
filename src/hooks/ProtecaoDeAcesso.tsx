@@ -2,10 +2,11 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
+import { verificarToken } from "@/components/utils/usuarioStorage";
 
 interface Props {
   children: React.ReactNode;
-  userid: string;
+  userid?: string;
 }
 
 const ProtecaoDeAcesso: React.FC<Props> = ({ children, userid }) => {
@@ -13,30 +14,50 @@ const ProtecaoDeAcesso: React.FC<Props> = ({ children, userid }) => {
 
   useEffect(() => {
     const verificarStatus = async () => {
-      if (!userid) return;
-
-      const { data: usuario, error } = await supabase
-        .from("tblusuarios")
-        .select("useremailconfirmed, isfastlogin")
-        .eq("userid", userid)
-        .single();
-
-      if (error || !usuario) {
-        // Se usuário não existe, redireciona para login
+      // Verificar se existe um token salvo
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        // Se não houver token, redireciona para login
         navigate("/login");
         return;
       }
-
-      if (!usuario.useremailconfirmed) {
-        // Email não confirmado, redireciona para página de confirmação
-        navigate("/aguardando-confirmacao");
+      
+      // Verifica se o token é válido
+      const { valido, usuario } = verificarToken(token);
+      
+      if (!valido || !usuario) {
+        // Token inválido ou expirado, redireciona para login
+        localStorage.removeItem("token");
+        navigate("/login");
         return;
       }
+      
+      // Se houver um userid específico para verificação
+      if (userid) {
+        const { data: usuarioDB, error } = await supabase
+          .from("tblusuarios")
+          .select("useremailconfirmed, isfastlogin")
+          .eq("userid", userid)
+          .single();
 
-      if (usuario.isfastlogin === 0) {
-        // Primeiro login, força alteração de senha
-        navigate(`/alterar-senha/${userid}`);
-        return;
+        if (error || !usuarioDB) {
+          // Se usuário não existe, redireciona para login
+          navigate("/login");
+          return;
+        }
+
+        if (!usuarioDB.useremailconfirmed) {
+          // Email não confirmado, redireciona para página de confirmação
+          navigate("/aguardando-confirmacao");
+          return;
+        }
+
+        if (usuarioDB.isfastlogin === 0) {
+          // Primeiro login, força alteração de senha
+          navigate(`/alterar-senha/${userid}`);
+          return;
+        }
       }
     };
 
