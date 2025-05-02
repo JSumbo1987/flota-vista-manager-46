@@ -4,7 +4,6 @@ import { Bell, Check, Trash, Filter, RefreshCcw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -17,6 +16,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useAuth } from "@/pages/Auth/AuthContext";
+import NotificationItem from "@/components/notifications/NotificationItem";
+import LoadingState from "@/components/ui/loading-state";
+import EmptyState from "@/components/ui/empty-state";
 
 interface Notificacao {
   notificacaoid: string;
@@ -167,16 +169,6 @@ const NotificacoesList = () => {
     }
   };
 
-  const getBadgeVariant = (tipo: Notificacao['tipo']) => {
-    switch (tipo) {
-      case 'info': return 'secondary';
-      case 'warning': return 'warning';
-      case 'error': return 'destructive';
-      case 'success': return 'success';
-      default: return 'secondary';
-    }
-  };
-
   const formatarData = (data: string) => {
     try {
       return format(new Date(data), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: pt });
@@ -186,18 +178,14 @@ const NotificacoesList = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center">
-            <Bell className="mr-2 h-6 w-6" />
-            Notificações
-          </h2>
-          <p className="text-muted-foreground">
-            Gerencie todas as suas notificações do sistema
-          </p>
+          <CardTitle>Suas notificações</CardTitle>
+          <CardDescription>
+            {notificacoes.filter(n => !n.lida).length} notificações não lidas
+          </CardDescription>
         </div>
-
         <div className="flex items-center space-x-2">
           <Select value={filtro} onValueChange={(value) => setFiltro(value as any)}>
             <SelectTrigger className="w-[180px]">
@@ -213,104 +201,46 @@ const NotificacoesList = () => {
             </SelectContent>
           </Select>
           
-          <Button variant="outline" onClick={carregarNotificacoes}>
+          <Button variant="outline" onClick={carregarNotificacoes} size="icon">
             <RefreshCcw className="h-4 w-4" />
           </Button>
 
           <Button variant="secondary" onClick={marcarTodasComoLidas}>
             <Check className="h-4 w-4 mr-2" />
-            Marcar todas como lidas
+            <span className="hidden sm:inline">Marcar todas como lidas</span>
+            <span className="sm:hidden">Marcar todas</span>
           </Button>
         </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Suas notificações</CardTitle>
-          <CardDescription>
-            {notificacoes.filter(n => !n.lida).length} notificações não lidas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : notificacoes.length === 0 ? (
-            <div className="text-center py-10">
-              <Bell className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-              <p className="mt-2 text-lg text-muted-foreground">Nenhuma notificação encontrada</p>
-              <p className="text-sm text-muted-foreground">
-                As notificações do sistema aparecerão aqui quando disponíveis
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {notificacoes.map((notif) => (
-                <div 
-                  key={notif.notificacaoid}
-                  className={`p-4 rounded-md border ${notif.lida ? 'bg-muted/30' : 'bg-card'}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4">
-                      <div 
-                        className={`p-2 rounded-full bg-${getBadgeVariant(notif.tipo)}/20 text-${getBadgeVariant(notif.tipo)}`}
-                      >
-                        <Bell className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{notif.titulo}</h4>
-                          {!notif.lida && (
-                            <Badge variant="default" className="text-xs">Nova</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{notif.mensagem}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {formatarData(notif.datahora || notif.criado_em)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex space-x-1">
-                      {!notif.lida && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => marcarComoLida(notif.notificacaoid)}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => excluirNotificacao(notif.notificacaoid)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  {notif.actionurl && (
-                    <div className="mt-3 flex justify-end">
-                      <Button variant="link" asChild className="p-0 h-auto">
-                        <a href={notif.actionurl} target="_blank" rel="noopener noreferrer">
-                          Ver detalhes
-                        </a>
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="border-t flex justify-between items-center pt-4">
-          <p className="text-sm text-muted-foreground">
-            Total de notificações: {notificacoes.length}
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <LoadingState message="Carregando notificações..." />
+        ) : notificacoes.length === 0 ? (
+          <EmptyState 
+            icon={<Bell className="h-12 w-12" />}
+            title="Nenhuma notificação encontrada"
+            description="As notificações do sistema aparecerão aqui quando disponíveis"
+          />
+        ) : (
+          <div className="space-y-4">
+            {notificacoes.map((notif) => (
+              <NotificationItem
+                key={notif.notificacaoid}
+                notification={notif}
+                formattedDate={formatarData(notif.datahora || notif.criado_em)}
+                onMarkAsRead={() => marcarComoLida(notif.notificacaoid)}
+                onDelete={() => excluirNotificacao(notif.notificacaoid)}
+              />
+            ))}
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="border-t flex justify-between items-center pt-4">
+        <p className="text-sm text-muted-foreground">
+          Total de notificações: {notificacoes.length}
+        </p>
+      </CardFooter>
+    </Card>
   );
 };
 

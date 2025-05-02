@@ -44,9 +44,10 @@ import DetalhesAbastecimento from "./pages/Viaturas/DetalheAbastecimento";
 import PerfilUsuario from "./pages/Usuarios/PerfilUsuario";
 import AtribuirViatura from "./pages/Funcionarios/AtribuirViatura";
 import ListaViaturasAtribuidas from "./pages/Viaturas/ViaturasAtribuidasList";
-import NotificacoesList from "./pages/Notificacoes/NotificacoesList";
+import Notificacoes from "./pages/Notificacoes/Notificacoes";
 import ConfiguracoesList from "./pages/Configuracoes/ConfiguracoesList";
 import AddUsuario from "./pages/Usuarios/AddUsuario";
+import EditUsuario from "./pages/Usuarios/EditUsuario";
 
 const queryClient = new QueryClient();
 
@@ -326,6 +327,8 @@ const App = () => (
                 </MainLayout>
               }
             />
+            
+            {/* Usuários */}
             <Route
               path="/usuarios"
               element={
@@ -339,6 +342,14 @@ const App = () => (
               element={
                 <MainLayout>
                   <AddUsuario />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/usuarios/edit/:id"
+              element={
+                <MainLayout>
+                  <EditUsuario />
                 </MainLayout>
               }
             />
@@ -362,7 +373,7 @@ const App = () => (
               path="/notificacoes"
               element={
                 <MainLayout>
-                  <NotificacoesList />
+                  <Notificacoes />
                 </MainLayout>
               }
             />

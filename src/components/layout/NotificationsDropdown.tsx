@@ -1,12 +1,12 @@
+
 import { useNavigate } from "react-router-dom";
-import { X, Bell } from "lucide-react";
+import { X, Bell, BellOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "@/hooks/useNotifications";
-import { supabase } from "@/lib/supabaseClient";
 import getRelativeTime from "./RelativeTime";
 
 interface NotificationsDropdownProps {
@@ -68,10 +68,8 @@ const NotificationItem = ({
 const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
   const navigate = useNavigate();
 
-  // Usando só o hook customizado para pegar notificações
-  const { notifications, loading, error } = useNotifications();
-
-  
+  // Usando o hook customizado para pegar notificações
+  const { notifications, loading, error, markAsRead } = useNotifications();
 
   // Mapeia as notificações para o formato esperado pelo NotificationItem
   const mappedNotifications = notifications.map((item) => ({
@@ -79,24 +77,19 @@ const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
     title: item.titulo || "Sem título",
     description: item.descricao || "",
     time: item.created_at
-      ? getRelativeTime(item.created_at)//Este é um hook para mostrar "há 1 minuto, há 1 hora etc."
+      ? getRelativeTime(item.created_at) // Hook para mostrar "há 1 minuto, há 1 hora etc."
       : "",
     read: item.lido || false,
     type: (item.tipo as any) || "info",
     route: item.rota || "/",
     onClick: async () => {
-      // Marcar como lida no Supabase
-      const { error } = await supabase
-        .from("tblnotificacoes")
-        .update({ lido: true })
-        .eq("id", item.id);
-    
-      if (!error) {
+      // Marcar como lida
+      const success = await markAsRead(item.id);
+      if (success) {
         onClose(); // Fecha o dropdown
         navigate(item.rota || "/"); // Redireciona
       }
     }
-    
   }));
 
   return (
@@ -123,9 +116,12 @@ const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
               Erro: {error}
             </p>
           ) : mappedNotifications.length === 0 ? (
-            <p className="p-3 text-center text-muted-foreground">
-              Nenhuma notificação
-            </p>
+            <div className="p-8 text-center flex flex-col items-center">
+              <BellOff className="h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">
+                Nenhuma notificação não lida
+              </p>
+            </div>
           ) : (
             mappedNotifications.map((notification) => (
               <NotificationItem key={notification.id} {...notification} />
@@ -152,4 +148,3 @@ const NotificationsDropdown = ({ onClose }: NotificationsDropdownProps) => {
 };
 
 export default NotificationsDropdown;
-

@@ -54,24 +54,26 @@ interface Servico {
 
 // TipoUsuario type
 interface TipoUsuario {
-  id: string;
-  tipoid: string;
+  tipousuarioid: string;
   descricao: string;
-  descricaotipo: string;
 }
 
 // GrupoUsuario type
 interface GrupoUsuario {
-  id: string;
-  grupoid: string;
-  gruponame: string;
+  grupousuarioid: string;
+  nome: string;
 }
 
 // Usuario type
 interface Usuario {
   id: string;
+  userid: string;
   usernome?: string;
   useremail?: string;
+  issuperusuario?: boolean;
+  useremailconfirmed?: boolean;
+  isfastlogin?: number;
+  estado?: string;
   // Other user properties
 }
 
@@ -80,22 +82,33 @@ interface PerfilUsuarioData {
   userid?: string;
   usernome?: string;
   useremail?: string;
-  tbltipousuarios: {
+  tbltipousuarios?: {
     descricaotipo: string;
   };
-  tblgrupousuarios: {
+  tblgrupousuarios?: {
     gruponame: string;
   };
-  tblusuariofuncionario: {
-    tblfuncionarios: {
+  tblusuariofuncionario?: {
+    tblfuncionarios?: {
       funcionarionome: string;
       funcionarioemail: string;
       funcaotipoid: string;
       categoriaid: string;
-      fotografia: string;
+      fotografia?: string | null;
     };
   }[];
 }
 
 // Dashboard task statuses
 type TaskStatus = "warning" | "Pendente" | "Concluido" | "Cancelado";
+
+// Notification type
+interface Notification {
+  id: string;
+  titulo: string;
+  descricao: string;
+  tipo: "warning" | "error" | "info" | "success";
+  lido: boolean;
+  rota: string;
+  created_at: string;
+}
