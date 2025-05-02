@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Calendar } from "lucide-react";
@@ -17,7 +18,6 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
@@ -34,6 +34,8 @@ const AddLicencaTransportacao = () => {
   const [dataEmissao, setDataEmissao] = useState<Date | undefined>(new Date());
   const [dataVencimento, setDataVencimento] = useState<Date | undefined>();
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [licencaNumero, setLicencaNumero] = useState("");
+  const [custoLicenca, setCustoLicenca] = useState("");
 
   useEffect(() => {
     const fetchViaturas = async () => {
@@ -64,7 +66,7 @@ const AddLicencaTransportacao = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!viaturaId || !descricao || !proprietario || !dataEmissao || !dataVencimento || !arquivo) {
+    if (!viaturaId || !descricao || !proprietario || !dataEmissao || !dataVencimento || !arquivo || !licencaNumero) {
       toast({
         title: "Erro de validação",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -110,6 +112,8 @@ const AddLicencaTransportacao = () => {
           datavencimento: format(dataVencimento, "yyyy/MM/dd"),
           copialicencatransporte: filePath,
           licencastatus: status,
+          licencanumero: licencaNumero,
+          custodalicenca: custoLicenca ? parseFloat(custoLicenca) : null,
         }
       ]);
 
@@ -167,6 +171,17 @@ const AddLicencaTransportacao = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="licencanumero">Número da Licença*</Label>
+                <Input
+                  id="licencanumero"
+                  value={licencaNumero}
+                  onChange={(e) => setLicencaNumero(e.target.value)}
+                  placeholder="Ex: LT-2023-12345"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -239,6 +254,18 @@ const AddLicencaTransportacao = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="custodalicenca">Custo da Licença</Label>
+                <Input
+                  id="custodalicenca"
+                  type="number"
+                  step="0.01"
+                  value={custoLicenca}
+                  onChange={(e) => setCustoLicenca(e.target.value)}
+                  placeholder="Ex: 1500.00"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="observacao">Observação</Label>
                 <Input
                   id="observacao"
@@ -266,8 +293,7 @@ const AddLicencaTransportacao = () => {
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar Licença"
-              }
+              {isSubmitting ? "Salvando..." : "Salvar Licença"}
             </Button>
           </CardFooter>
         </form>

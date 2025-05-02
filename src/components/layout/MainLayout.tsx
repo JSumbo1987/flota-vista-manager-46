@@ -24,7 +24,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       {/* Sidebar for desktop */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto lg:flex",
+          "fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -40,7 +40,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className={cn(
+        "flex-1 flex flex-col min-h-screen overflow-hidden transition-all duration-300",
+        sidebarOpen ? "lg:ml-0" : "ml-0"
+      )}>
         {/* Top navigation */}
         <header className="h-16 border-b bg-card shadow-sm z-30">
           <div className="h-full px-4 flex items-center justify-between">
@@ -49,7 +52,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden"
               >
                 <Menu className="h-5 w-5" />
               </Button>

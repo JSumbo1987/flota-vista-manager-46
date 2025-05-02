@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -22,7 +23,7 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
       setError(null);
   
       const { data, error } = await supabase
-        .from<Notification>("tblnotificacoes")
+        .from("tblnotificacoes")
         .select("*")
         .order("created_at", { ascending: false });
   
@@ -46,5 +47,4 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
 
   return { notifications, loading, error, refetch: fetchNotifications };
 }
-
 
