@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 // Ensure consistent status types
 type TaskStatus = "warning" | "Pendente" | "Concluido" | "Cancelado";
@@ -396,7 +397,7 @@ const Dashboard = () => {
               onClick={() => navigate("/funcionarios")}
             />
             <StatCard
-              icon={Calendar}
+              icon={CalendarIcon}
               title="Agendamentos Pendentes"
               value={agendamentosPendentes.toString()}
               description={`${agendamentosHoje} para hoje`}
