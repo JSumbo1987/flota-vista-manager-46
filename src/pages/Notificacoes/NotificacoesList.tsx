@@ -1,7 +1,13 @@
-
 import { useState, useEffect } from "react";
 import { Bell, Check, Trash, Filter, RefreshCcw } from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,9 +22,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useAuth } from "@/pages/Auth/AuthContext";
-import NotificationItem from "@/components/notifications/NotificationItem";
-import LoadingState from "@/components/ui/loading-state";
-import EmptyState from "@/components/ui/empty-state";
 
 interface Notificacao {
   id: string;
@@ -31,6 +34,20 @@ interface Notificacao {
   actionurl?: string;
   criado_em: string;
 }
+
+const getBadgeVariant = (tipo: Notificacao["tipo"]) => {
+  switch (tipo) {
+    case "success":
+      return "green-600";
+    case "warning":
+      return "yellow-600";
+    case "error":
+      return "red-600";
+    case "info":
+    default:
+      return "blue-600";
+  }
+};
 
 const NotificacoesList = () => {
   const { toast } = useToast();
@@ -45,7 +62,6 @@ const NotificacoesList = () => {
 
   const carregarNotificacoes = async () => {
     setIsLoading(true);
-    
     try {
       let query = supabase
         .from("tblnotificacoes")
@@ -66,7 +82,6 @@ const NotificacoesList = () => {
 
       if (error) throw error;
       setNotificacoes(data || []);
-      console.log(notificacoes);
     } catch (error) {
       console.error("Erro ao carregar notificações:", error);
       toast({
@@ -88,15 +103,13 @@ const NotificacoesList = () => {
 
       if (error) throw error;
 
-      setNotificacoes(prev => 
-        prev.map(notif => 
+      setNotificacoes(prev =>
+        prev.map(notif =>
           notif.id === id ? { ...notif, lido: true } : notif
         )
       );
 
-      toast({
-        title: "Notificação marcada como lida",
-      });
+      toast({ title: "Notificação marcada como lida" });
     } catch (error) {
       console.error("Erro ao marcar notificação:", error);
       toast({
@@ -116,13 +129,11 @@ const NotificacoesList = () => {
 
       if (error) throw error;
 
-      setNotificacoes(prev => 
+      setNotificacoes(prev =>
         prev.filter(notif => notif.id !== id)
       );
 
-      toast({
-        title: "Notificação excluída com sucesso",
-      });
+      toast({ title: "Notificação excluída com sucesso" });
     } catch (error) {
       console.error("Erro ao excluir notificação:", error);
       toast({
@@ -136,7 +147,7 @@ const NotificacoesList = () => {
   const marcarTodasComoLidas = async () => {
     try {
       const notificacoesNaoLidas = notificacoes.filter(n => !n.lido).map(n => n.id);
-      
+
       if (notificacoesNaoLidas.length === 0) {
         toast({
           title: "Informação",
@@ -152,13 +163,11 @@ const NotificacoesList = () => {
 
       if (error) throw error;
 
-      setNotificacoes(prev => 
+      setNotificacoes(prev =>
         prev.map(notif => ({ ...notif, lido: true }))
       );
 
-      toast({
-        title: "Todas as notificações foram marcadas como lidas",
-      });
+      toast({ title: "Todas as notificações foram marcadas como lidas" });
     } catch (error) {
       console.error("Erro ao marcar todas notificações:", error);
       toast({
@@ -183,7 +192,7 @@ const NotificacoesList = () => {
         <div>
           <CardTitle>Suas notificações</CardTitle>
           <CardDescription>
-            {notificacoes.filter(n => !n.lida).length} notificações não lidas
+            {notificacoes.filter(n => !n.lido).length} notificações não lidas
           </CardDescription>
         </div>
         <div className="flex items-center space-x-2">
@@ -200,7 +209,7 @@ const NotificacoesList = () => {
               <SelectItem value="nao-lidas">Não lidas</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Button variant="outline" onClick={carregarNotificacoes} size="icon">
             <RefreshCcw className="h-4 w-4" />
           </Button>
@@ -211,96 +220,81 @@ const NotificacoesList = () => {
             <span className="sm:hidden">Marcar todas</span>
           </Button>
         </div>
-      </div>
+      </CardHeader>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Suas notificações</CardTitle>
-          <CardDescription>
-            {notificacoes.filter(n => !n.lido).length} notificações não lidas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : notificacoes.length === 0 ? (
-            <div className="text-center py-10">
-              <Bell className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-              <p className="mt-2 text-lg text-muted-foreground">Nenhuma notificação encontrada</p>
-              <p className="text-sm text-muted-foreground">
-                As notificações do sistema aparecerão aqui quando disponíveis
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {notificacoes.map((notif) => (
-                <div 
-                  key={notif.id}
-                  className={`p-4 rounded-md border ${notif.lido ? 'bg-muted/30' : 'bg-card'}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4">
-                      <div 
-                        className={`p-2 rounded-full bg-${getBadgeVariant(notif.tipo)}/20 text-${getBadgeVariant(notif.tipo)}`}
-                      >
-                        <Bell className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{notif.titulo}</h4>
-                          {!notif.lido && (
-                            <Badge variant="default" className="text-xs">Nova</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{notif.mensagem}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {formatarData(notif.datahora || notif.criado_em)}
-                        </p>
-                      </div>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : notificacoes.length === 0 ? (
+          <div className="text-center py-10">
+            <Bell className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+            <p className="mt-2 text-lg text-muted-foreground">Nenhuma notificação encontrada</p>
+            <p className="text-sm text-muted-foreground">
+              As notificações do sistema aparecerão aqui quando disponíveis
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {notificacoes.map((notif) => (
+              <div
+                key={notif.id}
+                className={`p-4 rounded-md border ${notif.lido ? 'bg-muted/30' : 'bg-card'}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-4">
+                    <div
+                      className={`p-2 rounded-full bg-${getBadgeVariant(notif.tipo)}/20 text-${getBadgeVariant(notif.tipo)}`}
+                    >
+                      <Bell className="h-5 w-5" />
                     </div>
-                    <div className="flex space-x-1">
-                      {!notif.lido && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => marcarComoLida(notif.id)}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => excluirNotificacao(notif.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{notif.titulo}</h4>
+                        {!notif.lido && (
+                          <Badge variant="default" className="text-xs">Nova</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{notif.mensagem}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {formatarData(notif.datahora || notif.criado_em)}
+                      </p>
                     </div>
                   </div>
-                  {notif.actionurl && (
-                    <div className="mt-3 flex justify-end">
-                      <Button variant="link" asChild className="p-0 h-auto">
-                        <a href={notif.actionurl} target="_blank" rel="noopener noreferrer">
-                          Ver detalhes
-                        </a>
+                  <div className="flex space-x-1">
+                    {!notif.lido && (
+                      <Button variant="ghost" size="icon" onClick={() => marcarComoLida(notif.id)}>
+                        <Check className="h-4 w-4" />
                       </Button>
-                    </div>
-                  )}
+                    )}
+                    <Button variant="ghost" size="icon" onClick={() => excluirNotificacao(notif.id)}>
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="border-t flex justify-between items-center pt-4">
-          <p className="text-sm text-muted-foreground">
-            Total de notificações: {notificacoes.length}
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
+                {notif.actionurl && (
+                  <div className="mt-3 flex justify-end">
+                    <Button variant="link" asChild className="p-0 h-auto">
+                      <a href={notif.actionurl} target="_blank" rel="noopener noreferrer">
+                        Ver detalhes
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="border-t flex justify-between items-center pt-4">
+        <p className="text-sm text-muted-foreground">
+          Total de notificações: {notificacoes.length}
+        </p>
+      </CardFooter>
+    </Card>
   );
 };
 
 export default NotificacoesList;
+

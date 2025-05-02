@@ -132,7 +132,7 @@ const CertificadoForm = ({
         numerocertificado: numeroCertificado,
         copiadocertificado: filePath || null,
         status: status,
-        custodocertificado: custoCertificado ? parseFloat(custoCertificado) : null,
+        custocertificado: custoCertificado ? parseFloat(custoCertificado) : null,
       };
 
       if (isEditing && initialData?.id) {

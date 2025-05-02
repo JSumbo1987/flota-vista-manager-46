@@ -36,7 +36,7 @@ const EditCertificado = () => {
             proximaInspeccao: new Date(data.proximainspeccao),
             numeroCertificado: data.numerocertificado,
             arquivoExistente: data.copiadocertificado || "",
-            custoCertificado: data.custodocertificado ? data.custodocertificado.toString() : "",
+            custoCertificado: data.custocertificado ? data.custocertificado.toString() : "",
           });
           
           // Fetch signed URL if there's a file
