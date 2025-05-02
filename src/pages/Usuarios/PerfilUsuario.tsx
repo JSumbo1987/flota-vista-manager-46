@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -14,12 +15,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
+// Updated interface to match the database structure
 interface PerfilUsuarioData {
   userid: string;
   usernome: string;
   useremail: string;
-  tbltipousuarios?: { descricaotipo: string };
-  tblgrupousuarios?: { gruponame: string };
+  tbltipousuarios?: {
+    descricaotipo: string;
+  };
+  tblgrupousuarios?: {
+    gruponame: string;
+  };
   tblusuariofuncionario?: {
     tblfuncionarios?: {
       funcionarionome: string;
@@ -64,17 +70,29 @@ const PerfilUsuario = () => {
         return;
       }
 
+      // Properly format the data to match our interface
+      const formattedData: PerfilUsuarioData = {
+        userid: data.userid,
+        usernome: data.usernome,
+        useremail: data.useremail,
+        tbltipousuarios: data.tbltipousuarios,
+        tblgrupousuarios: data.tblgrupousuarios,
+        tblusuariofuncionario: data.tblusuariofuncionario
+      };
+
+      // Get photo if available
       const fotoPath = data.tblusuariofuncionario?.tblfuncionarios?.fotografia;
       if (fotoPath) {
         const { data: signedUrlData, error: urlError } = await supabase.storage
           .from("funcionarios")
           .createSignedUrl(fotoPath, 60);
+          
         if (!urlError && signedUrlData?.signedUrl) {
           setFotoUrl(signedUrlData.signedUrl);
         }
       }
 
-      setPerfil(data);
+      setPerfil(formattedData);
       setIsLoading(false);
     };
 
@@ -161,5 +179,3 @@ const PerfilUsuario = () => {
 };
 
 export default PerfilUsuario;
-
-

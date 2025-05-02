@@ -15,9 +15,14 @@ interface MainLayoutProps {
 
 const MainLayout = ({ children }: MainLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const navigate = useNavigate();
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -28,7 +33,11 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        <Sidebar 
+          onClose={() => setSidebarOpen(false)} 
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapse}
+        />
       </div>
 
       {/* Overlay for mobile when sidebar is open */}

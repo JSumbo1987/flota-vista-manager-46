@@ -2,12 +2,23 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { verificarToken } from "@/components/utils/usuarioStorage";
+import { estaAutenticado, obterUsuario } from "@/components/utils/usuarioStorage";
 
 interface Props {
   children: React.ReactNode;
   userid?: string;
 }
+
+// Function to verify token (since it was missing)
+const verificarToken = (token: string): { valido: boolean, usuario: any } => {
+  const autenticado = estaAutenticado();
+  const usuario = obterUsuario();
+  
+  return {
+    valido: autenticado && !!token,
+    usuario: usuario
+  };
+};
 
 const ProtecaoDeAcesso: React.FC<Props> = ({ children, userid }) => {
   const navigate = useNavigate();

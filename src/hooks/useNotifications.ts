@@ -26,16 +26,18 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
       setError(null);
       
       // Somente buscar notificações se houver um usuário logado
-      if (!usuario?.id) {
+      if (!usuario?.userid && !usuario?.id) {
         setNotifications([]);
         setUnreadCount(0);
         return;
       }
   
+      const usuarioId = usuario.userid || usuario.id;
+      
       const { data, error } = await supabase
         .from("tblnotificacoes")
         .select("*")
-        .eq("usuarioid", usuario.id)
+        .eq("usuarioid", usuarioId)
         .eq("lida", false)
         .order("created_at", { ascending: false });
   
@@ -60,7 +62,7 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
     } finally {
       setLoading(false);
     }
-  }, [usuario?.id]);
+  }, [usuario?.id, usuario?.userid]);
   
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
@@ -88,13 +90,15 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
     fetchNotifications();
     
     // Configure real-time subscription para notificações
+    const usuarioId = usuario?.userid || usuario?.id;
+    
     const subscription = supabase
       .channel('notifications-changes')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'tblnotificacoes',
-        filter: usuario?.id ? `usuarioid=eq.${usuario.id}` : undefined
+        filter: usuarioId ? `usuarioid=eq.${usuarioId}` : undefined
       }, () => {
         fetchNotifications();
       })
@@ -106,7 +110,7 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
       clearInterval(interval);
       subscription.unsubscribe();
     };
-  }, [fetchNotifications, pollInterval, usuario?.id]);
+  }, [fetchNotifications, pollInterval, usuario?.id, usuario?.userid]);
 
   return { 
     notifications, 

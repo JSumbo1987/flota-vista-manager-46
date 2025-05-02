@@ -65,7 +65,21 @@ const UserDetailsModal = ({ isOpen, onClose, userId }: UserDetailsModalProps) =>
 
         if (error) throw error;
         
-        setUserDetails(data);
+        // Properly cast and format the data to match the UserDetails interface
+        const formattedData: UserDetails = {
+          userid: data.userid,
+          usernome: data.usernome,
+          useremail: data.useremail,
+          estado: data.estado,
+          issuperusuario: data.issuperusuario,
+          isfastlogin: data.isfastlogin,
+          useremailconfirmed: data.useremailconfirmed,
+          tbltipousuarios: data.tbltipousuarios,
+          tblgrupousuarios: data.tblgrupousuarios,
+          tblusuariofuncionario: data.tblusuariofuncionario
+        };
+        
+        setUserDetails(formattedData);
 
         // Fetch photo URL if available
         const fotoPath = data.tblusuariofuncionario?.[0]?.tblfuncionarios?.fotografia;

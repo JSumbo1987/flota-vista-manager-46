@@ -46,9 +46,14 @@ interface Servico {
   };
   tbltipoassistencia: {
     descricao: string;
+    nome?: string;
   };
   tblcategoriaassistencia: {
     descricao: string;
+    nome?: string;
+  };
+  tblprestador: {
+    prestadornome: string;
   };
 }
 
@@ -96,7 +101,7 @@ interface PerfilUsuarioData {
       categoriaid: string;
       fotografia?: string | null;
     };
-  }[];
+  };
 }
 
 // Dashboard task statuses

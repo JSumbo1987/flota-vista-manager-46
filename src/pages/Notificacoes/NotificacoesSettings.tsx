@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -33,7 +32,10 @@ const NotificacoesSettings = () => {
   });
 
   useEffect(() => {
-    if (!usuario?.id) return;
+    if (!usuario) return;
+    
+    const userId = usuario.userid || usuario.id;
+    if (!userId) return;
 
     const fetchSettings = async () => {
       setIsLoading(true);
@@ -41,7 +43,7 @@ const NotificacoesSettings = () => {
         const { data, error } = await supabase
           .from("tblnotificacoes_config")
           .select("*")
-          .eq("userid", usuario.id)
+          .eq("userid", userId)
           .single();
 
         if (error) {
@@ -49,7 +51,7 @@ const NotificacoesSettings = () => {
             // Record not found, we'll create default settings when saving
             setSettings({
               ...settings,
-              userid: usuario.id,
+              userid: userId,
             });
           } else {
             throw error;
@@ -70,7 +72,7 @@ const NotificacoesSettings = () => {
     };
 
     fetchSettings();
-  }, [usuario?.id, toast]);
+  }, [usuario, toast]);
 
   const handleToggleChange = (key: keyof NotificationSettings, value: boolean) => {
     setSettings(prev => ({
@@ -80,7 +82,10 @@ const NotificacoesSettings = () => {
   };
 
   const saveSettings = async () => {
-    if (!usuario?.id) return;
+    if (!usuario) return;
+    
+    const userId = usuario.userid || usuario.id;
+    if (!userId) return;
 
     setIsSaving(true);
     try {
@@ -88,7 +93,7 @@ const NotificacoesSettings = () => {
       const { data: existingSettings } = await supabase
         .from("tblnotificacoes_config")
         .select("userid")
-        .eq("userid", usuario.id)
+        .eq("userid", userId)
         .single();
 
       let error;
@@ -98,12 +103,12 @@ const NotificacoesSettings = () => {
         ({ error } = await supabase
           .from("tblnotificacoes_config")
           .update(settings)
-          .eq("userid", usuario.id));
+          .eq("userid", userId));
       } else {
         // Insert new settings
         ({ error } = await supabase
           .from("tblnotificacoes_config")
-          .insert({ ...settings, userid: usuario.id }));
+          .insert({ ...settings, userid: userId }));
       }
 
       if (error) throw error;

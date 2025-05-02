@@ -9,6 +9,7 @@ export interface Usuario {
   foto?: string;
   token?: string;
   tokenExpiracao?: string;
+  userid?: string; // Adding userid field for compatibility
 }
 
 // Função para obter o usuário do storage
