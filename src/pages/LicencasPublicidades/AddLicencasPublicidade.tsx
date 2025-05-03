@@ -33,6 +33,7 @@ const AddLicencaPublicidade = () => {
   const [dataEmissao, setDataEmissao] = useState<Date | undefined>(new Date());
   const [dataVencimento, setDataVencimento] = useState<Date | undefined>();
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [custoLicenca, setCustoLicenca] = useState("");
 
   useEffect(() => {
     const fetchViaturas = async () => {
@@ -108,6 +109,7 @@ const AddLicencaPublicidade = () => {
           datavencimento: format(dataVencimento, "yyyy/MM/dd"),
           licencastatus: status,
           copialicencapublicidade: filePath,
+          custolicenca: custoLicenca ? parseFloat(custoLicenca) : null,
         }
       ]);
 
@@ -224,13 +226,14 @@ const AddLicencaPublicidade = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="upload">Cópia da Licença*</Label>
+                <Label htmlFor="custodalicenca">Custo da Licença</Label>
                 <Input
-                  id="upload"
-                  type="file"
-                  accept="application/pdf,image/*"
-                  onChange={handleFileChange}
-                  required
+                  id="custodalicenca"
+                  type="number"
+                  step="0.01"
+                  value={custoLicenca}
+                  onChange={(e) => setCustoLicenca(e.target.value)}
+                  placeholder="Ex: 1500.00"
                 />
               </div>
 
@@ -241,6 +244,17 @@ const AddLicencaPublicidade = () => {
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
                   placeholder="Ex: Licença para publicidade traseira"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="upload">Cópia da Licença*</Label>
+                <Input
+                  id="upload"
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={handleFileChange}
                   required
                 />
               </div>

@@ -81,7 +81,7 @@ const EditLicencaTransporte = () => {
         setDataVencimento(new Date(data.datavencimento));
         setCopiaAtual(data.copialicencatransporte);
         setLicencaNumero(data.licencanumero || "");
-        setCustoLicenca(data.custodalicenca ? data.custodalicenca.toString() : "");
+        setCustoLicenca(data.custolicenca ? data.custolicenca.toString() : "");
       } catch (error) {
         toast({
           title: "Erro ao carregar dados",
@@ -155,7 +155,7 @@ const EditLicencaTransporte = () => {
           copialicencatransporte: filePath,
           licencastatus: status,
           licencanumero: licencaNumero,
-          custodalicenca: custoLicenca ? parseFloat(custoLicenca) : null,
+          custolicenca: custoLicenca ? parseFloat(custoLicenca) : null,
         })
         .eq("id", id);
 
@@ -312,9 +312,9 @@ const EditLicencaTransporte = () => {
 
               {/* Custo da Licença */}
               <div className="space-y-2">
-                <Label htmlFor="custodalicenca">Custo da Licença</Label>
+                <Label htmlFor="custolicenca">Custo da Licença</Label>
                 <Input
-                  id="custodalicenca"
+                  id="custolicenca"
                   type="number"
                   step="0.01"
                   value={custoLicenca}

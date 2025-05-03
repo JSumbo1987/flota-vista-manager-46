@@ -51,6 +51,7 @@ const EditLicencaPublicidade = () => {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [arquivoExistente, setArquivoExistente] = useState("");
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [custoLicenca, setCustoLicenca] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,6 +82,7 @@ const EditLicencaPublicidade = () => {
         setDataVencimento(new Date(data.datavencimento));
         setStatus(data.licencastatus);
         setArquivoExistente(data.copialicencapublicidade || "");
+        setCustoLicenca(data.custolicenca || "0.00");
         if (data.copialicencapublicidade) {
           fetchSignedUrl(data.copialicencapublicidade);
         }
@@ -105,7 +107,8 @@ const EditLicencaPublicidade = () => {
       !descricao ||
       !licencaNumero ||
       !dataEmissao ||
-      !dataVencimento
+      !dataVencimento ||
+      !custoLicenca
     ) {
       toast({
         title: "Erro de validação",
@@ -156,6 +159,7 @@ const EditLicencaPublicidade = () => {
           datavencimento: fimFormatado,
           copialicencapublicidade: filePath,
           licencastatus: novoStatus,
+          custolicenca: custoLicenca,
         })
         .eq("id", id);
 
@@ -295,6 +299,17 @@ const EditLicencaPublicidade = () => {
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="custolicenca">Custo da Licença</Label>
+                <Input
+                  id="custolicenca"
+                  type="number"
+                  step="0.01"
+                  value={custoLicenca}
+                  onChange={(e) => setCustoLicenca(e.target.value)}
+                  placeholder="Ex: 1500.00"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="arquivo">

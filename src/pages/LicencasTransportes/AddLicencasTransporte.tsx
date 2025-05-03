@@ -66,7 +66,7 @@ const AddLicencaTransportacao = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!viaturaId || !descricao || !proprietario || !dataEmissao || !dataVencimento || !arquivo || !licencaNumero) {
+    if (!viaturaId || !descricao || !proprietario || !dataEmissao || !dataVencimento || !arquivo || !licencaNumero || !custoLicenca) {
       toast({
         title: "Erro de validação",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -113,7 +113,7 @@ const AddLicencaTransportacao = () => {
           copialicencatransporte: filePath,
           licencastatus: status,
           licencanumero: licencaNumero,
-          custodalicenca: custoLicenca ? parseFloat(custoLicenca) : null,
+          custolicenca: custoLicenca ? parseFloat(custoLicenca) : null,
         }
       ]);
 
