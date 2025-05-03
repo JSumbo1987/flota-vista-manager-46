@@ -16,18 +16,18 @@ const PermissionsTab = () => {
 
   // Menu permissions state
   const [menuPermissions, setMenuPermissions] = useState<MenuPermission[]>([
-    { id: "dashboard", name: "Dashboard", canInsert: false, canEdit: false, canDelete: false, canView: true },
-    { id: "viaturas", name: "Viaturas", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "funcionarios", name: "Funcionários", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "agendamentos", name: "Agendamentos", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "servicos", name: "Serviços", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "checklist", name: "Checklist", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "certificados", name: "Certificados", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "licenca-transporte", name: "Licença Transporte", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "licenca-publicidade", name: "Licença Publicidade", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "usuarios", name: "Usuários", canInsert: true, canEdit: true, canDelete: true, canView: true },
-    { id: "notificacoes", name: "Notificações", canInsert: false, canEdit: true, canDelete: true, canView: true },
-    { id: "configuracoes", name: "Configurações", canInsert: false, canEdit: true, canDelete: false, canView: true },
+    { id: "dashboard", nomeMenu: "Dashboard", canInsert: false, canEdit: false, canDelete: false, canView: true, canTodos: false, canurl:'/' },
+    { id: "viaturas", nomeMenu: "Viaturas", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/viaturas' },
+    { id: "funcionarios", nomeMenu: "Funcionários", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/funcionarios'},
+    { id: "agendamentos", nomeMenu: "Agendamentos", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/agendamentos' },
+    { id: "servicos", nomeMenu: "Serviços", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/servicos' },
+    { id: "checklist", nomeMenu: "Checklist", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/checklist' },
+    { id: "certificados", nomeMenu: "Certificados", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/certificados' },
+    { id: "licenca-transporte", nomeMenu: "Licença Transporte", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/licenca-transporte' },
+    { id: "licenca-publicidade", nomeMenu: "Licença Publicidade", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/licenca-publicidade' },
+    { id: "usuarios", nomeMenu: "Usuários", canInsert: true, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/usuarios' },
+    { id: "notificacoes", nomeMenu: "Notificações", canInsert: false, canEdit: true, canDelete: true, canView: true, canTodos: false, canurl:'/notificacoes' },
+    { id: "configuracoes", nomeMenu: "Configurações", canInsert: false, canEdit: true, canDelete: false, canView: true, canTodos: false, canurl:'/configuracoes' },
   ]);
 
   const handlePermissionChange = (menuId: string, permission: 'canInsert' | 'canEdit' | 'canDelete' | 'canView', value: boolean) => {

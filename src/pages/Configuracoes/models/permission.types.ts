@@ -1,11 +1,13 @@
 
 export interface MenuPermission {
   id: string;
-  name: string;
+  nomeMenu: string;
   canInsert: boolean;
   canEdit: boolean;
   canDelete: boolean;
   canView: boolean;
+  canTodos: boolean;
+  canurl: string;
 }
 
 export interface UserOrGroup {

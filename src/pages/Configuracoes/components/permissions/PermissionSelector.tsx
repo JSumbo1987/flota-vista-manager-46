@@ -71,18 +71,18 @@ const PermissionSelector = ({
     try {
       const { data, error } = await supabase
         .from('tblgrupousuarios')
-        .select('id, nome')
-        .order('nome');
+        .select('grupoid, gruponame')
+        .order('gruponame');
       
       if (error) throw error;
       
       setGroups(data.map(group => ({
-        id: group.id,
-        name: group.nome
+        id: group.grupoid,
+        name: group.gruponame
       })));
       
       if (data.length > 0 && !selectedGroup) {
-        setSelectedGroup(data[0].id);
+        setSelectedGroup(data[0].grupoid);
       }
     } catch (error) {
       console.error('Erro ao buscar grupos:', error);
