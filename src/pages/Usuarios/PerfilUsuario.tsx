@@ -1,179 +1,203 @@
 
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-// Updated interface to match the database structure
-interface PerfilUsuarioData {
-  userid: string;
-  usernome: string;
-  useremail: string;
-  tbltipousuarios?: {
-    descricaotipo: string;
-  };
-  tblgrupousuarios?: {
-    gruponame: string;
-  };
-  tblusuariofuncionario?: {
-    tblfuncionarios?: {
-      funcionarionome: string;
-      funcionarioemail: string;
-      funcaotipoid: string;
-      categoriaid: string;
-      fotografia?: string | null;
-    };
-  };
-}
+import { Badge } from "@/components/ui/badge";
+import { Mail, Phone, User, Building, Star, UserCog, ShieldCheck, Calendar } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/hooks/use-toast";
 
 const PerfilUsuario = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [perfil, setPerfil] = useState<PerfilUsuarioData | null>(null);
-  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { id } = useParams();
+  const { toast } = useToast();
+  const [perfil, setPerfil] = useState<PerfilUsuarioData>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPerfil = async () => {
-      if (!id) return;
-      setIsLoading(true);
-
-      const { data, error } = await supabase
-        .from("tblusuarios")
-        .select(`
-          userid,
-          usernome,
-          useremail,
-          tbltipousuarios(descricaotipo),
-          tblgrupousuarios(gruponame),
-          tblusuariofuncionario(
-            tblfuncionarios(funcionarionome, funcionarioemail, funcaotipoid, categoriaid, fotografia)
-          )
-        `)
-        .eq("userid", id)
-        .single();
-
-      if (error || !data) {
-        console.error("Erro ao buscar perfil:", error?.message);
-        setIsLoading(false);
-        return;
-      }
-
-      // Properly format the data to match our interface
-      const formattedData: PerfilUsuarioData = {
-        userid: data.userid,
-        usernome: data.usernome,
-        useremail: data.useremail,
-        tbltipousuarios: data.tbltipousuarios,
-        tblgrupousuarios: data.tblgrupousuarios,
-        tblusuariofuncionario: data.tblusuariofuncionario
-      };
-
-      // Get photo if available
-      const fotoPath = data.tblusuariofuncionario?.tblfuncionarios?.fotografia;
-      if (fotoPath) {
-        const { data: signedUrlData, error: urlError } = await supabase.storage
-          .from("funcionarios")
-          .createSignedUrl(fotoPath, 60);
-          
-        if (!urlError && signedUrlData?.signedUrl) {
-          setFotoUrl(signedUrlData.signedUrl);
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        
+        if (!id) {
+          throw new Error("ID do usuário não fornecido");
         }
+        
+        const { data, error } = await supabase
+          .from("tblusuarios")
+          .select(`
+            *,
+            tbltipousuarios (*),
+            tblgrupousuarios (*),
+            tblusuariofuncionario (
+              tblfuncionarios (*)
+            )
+          `)
+          .eq("userid", id)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          // Format the data to match our PerfilUsuarioData type
+          const formattedData: PerfilUsuarioData = {
+            userid: data.userid,
+            usernome: data.usernome,
+            useremail: data.useremail,
+            tbltipousuarios: data.tbltipousuarios ? {
+              descricaotipo: data.tbltipousuarios.descricao
+            } : undefined,
+            tblgrupousuarios: data.tblgrupousuarios ? {
+              gruponame: data.tblgrupousuarios.nome
+            } : undefined,
+            tblusuariofuncionario: data.tblusuariofuncionario && data.tblusuariofuncionario.tblfuncionarios ? {
+              tblfuncionarios: {
+                funcionarionome: data.tblusuariofuncionario.tblfuncionarios.funcionarionome,
+                funcionarioemail: data.tblusuariofuncionario.tblfuncionarios.funcionarioemail,
+                funcaotipoid: data.tblusuariofuncionario.tblfuncionarios.funcaotipoid,
+                categoriaid: data.tblusuariofuncionario.tblfuncionarios.categoriaid,
+                fotografia: data.tblusuariofuncionario.tblfuncionarios.fotografia
+              }
+            } : undefined
+          };
+          
+          setPerfil(formattedData);
+        }
+        
+      } catch (error) {
+        console.error("Erro ao buscar perfil:", error);
+        toast({
+          title: "Erro",
+          description: error instanceof Error ? error.message : "Erro ao carregar o perfil de usuário",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-
-      setPerfil(formattedData);
-      setIsLoading(false);
     };
+    
+    fetchUserProfile();
+  }, [id, toast]);
 
-    fetchPerfil();
-  }, [id]);
+  const getFotoPerfil = () => {
+    if (perfil?.tblusuariofuncionario?.tblfuncionarios?.fotografia) {
+      return perfil.tblusuariofuncionario.tblfuncionarios.fotografia;
+    }
+    return null;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[70vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/funcionarios")} className="mr-2">
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h2 className="text-3xl font-bold">Perfil do Usuário</h2>
-          <p className="text-muted-foreground">Detalhes vinculados ao funcionário</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Perfil do Usuário</h2>
+        <p className="text-muted-foreground">Detalhes completos do perfil de usuário</p>
       </div>
 
-      <Card>
-        <CardHeader className="flex items-start justify-between">
-            <div className="flex-1">
-                <CardTitle>Informações do Usuário</CardTitle>
-                <CardDescription>Dados principais do sistema</CardDescription>
-            </div>
-            {fotoUrl && (
-            <div className="absolute top-24 right-10">
-                <Avatar className="w-24 h-24 rounded-full border shadow-md">
-                <AvatarImage src={fotoUrl} alt="Foto do Funcionário" />
-                <AvatarFallback>{perfil?.usernome?.[0] ?? "?"}</AvatarFallback>
-                </Avatar>
-            </div>
-            )}
-        </CardHeader>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* Coluna Esquerda */}
+        <div className="md:col-span-4 space-y-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Dados Pessoais</CardTitle>
+              <CardDescription>Informações básicas do perfil</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center">
+              <Avatar className="h-32 w-32 mb-4">
+                {getFotoPerfil() ? (
+                  <AvatarImage src={getFotoPerfil() || ''} />
+                ) : (
+                  <AvatarFallback className="text-4xl bg-primary/10 text-primary">
+                    {perfil?.usernome?.substring(0, 2).toUpperCase() || "US"}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              
+              <h3 className="text-xl font-medium text-center">{perfil?.usernome || "Nome não disponível"}</h3>
+              
+              <div className="w-full mt-4 space-y-2">
+                <div className="flex items-center space-x-3 bg-muted/50 p-2 rounded-md">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span>{perfil?.useremail || "Email não disponível"}</span>
+                </div>
+                
+                <div className="flex items-center space-x-3 bg-muted/50 p-2 rounded-md">
+                  <UserCog className="h-4 w-4 text-muted-foreground" />
+                  <span>{perfil?.tbltipousuarios?.descricaotipo || "Tipo não disponível"}</span>
+                </div>
+                
+                <div className="flex items-center space-x-3 bg-muted/50 p-2 rounded-md">
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                  <span>{perfil?.tblgrupousuarios?.gruponame || "Grupo não disponível"}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <CardContent className="space-y-3">
-          {isLoading ? (
-            <Skeleton className="h-20 w-full" />
-          ) : !perfil ? (
-            <p className="text-muted-foreground">Usuário não encontrado.</p>
-          ) : (
-            <>
-              <div>
-                <strong>Nome:</strong> {perfil.usernome}
-              </div>
-              <div>
-                <strong>Email:</strong> {perfil.useremail}
-              </div>
-              <div>
-                <strong>Tipo de Usuário:</strong> {perfil.tbltipousuarios?.descricaotipo || "—"}
-              </div>
-              <div>
-                <strong>Grupo:</strong> {perfil.tblgrupousuarios?.gruponame || "—"}
-              </div>
-              {perfil.tblusuariofuncionario?.tblfuncionarios && (
-                <>
-                  <hr />
-                  <p className="text-sm text-muted-foreground">Informações do Funcionário:</p>
-                  <div>
-                    <strong>Nome:</strong> {perfil.tblusuariofuncionario.tblfuncionarios.funcionarionome}
+        {/* Coluna Direita */}
+        <div className="md:col-span-8 space-y-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Informações do Funcionário</CardTitle>
+              <CardDescription>Dados do funcionário vinculado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {perfil?.tblusuariofuncionario?.tblfuncionarios ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-3 bg-muted/50 p-3 rounded-md">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Nome</p>
+                        <p>{perfil.tblusuariofuncionario.tblfuncionarios.funcionarionome}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 bg-muted/50 p-3 rounded-md">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Email</p>
+                        <p>{perfil.tblusuariofuncionario.tblfuncionarios.funcionarioemail}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 bg-muted/50 p-3 rounded-md">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Função</p>
+                        <p>{perfil.tblusuariofuncionario.tblfuncionarios.funcaotipoid}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 bg-muted/50 p-3 rounded-md">
+                      <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Categoria</p>
+                        <p>{perfil.tblusuariofuncionario.tblfuncionarios.categoriaid}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <strong>Email Corporativo:</strong> {perfil.tblusuariofuncionario.tblfuncionarios.funcionarioemail}
-                  </div>
-                  <div>
-                    <strong>Função:</strong> {perfil.tblusuariofuncionario.tblfuncionarios.funcaotipoid}
-                  </div>
-                  <div>
-                    <strong>Categoria:</strong> {perfil.tblusuariofuncionario.tblfuncionarios.categoriaid}
-                  </div>
-                </>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <User className="h-12 w-12 text-muted-foreground mb-4 opacity-30" />
+                  <p className="text-lg text-muted-foreground">Nenhum funcionário vinculado a este usuário</p>
+                </div>
               )}
-            </>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex justify-end">
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            Voltar
-          </Button>
-        </CardFooter>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

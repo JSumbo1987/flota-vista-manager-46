@@ -1,14 +1,19 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export interface Notification {
   id: string;
+  notificacaoid?: string;
   titulo: string;
   descricao: string;
+  mensagem?: string;
   tipo: "warning" | "error" | "info" | "success";
   lido: boolean;
   rota: string;
+  actionurl?: string;
   created_at: string;
+  datahora?: string;
 }
 
 export function useNotifications(pollInterval = 60000) { // 1 minuto
@@ -31,13 +36,17 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
       if (error) throw error;
 
       const formattedData = (data || []).map(n => ({
-        id: n.notificacaoid,
+        id: n.id || n.notificacaoid,
+        notificacaoid: n.notificacaoid || n.id,
         titulo: n.titulo || "Sem título",
         descricao: n.mensagem || "",
+        mensagem: n.mensagem || "",
         tipo: (n.tipo as "warning" | "error" | "info" | "success") || "info",
-        lido: n.lida || false,
+        lido: n.lido || false,
         rota: n.actionurl || "/",
-        created_at: n.created_at || n.datahora || new Date().toISOString()
+        actionurl: n.actionurl || "/",
+        created_at: n.created_at || n.datahora || new Date().toISOString(),
+        datahora: n.datahora || n.created_at
       }));
 
       setNotifications(formattedData);
@@ -53,17 +62,26 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      if (!notificationId) return;
+      if (!notificationId) return false;
 
-      const { error } = await supabase
+      // Try first with notificacaoid
+      let { error } = await supabase
         .from("tblnotificacoes")
-        .update({ lida: true })
+        .update({ lido: true })
         .eq("notificacaoid", notificationId);
 
-      if (error) throw error;
+      // If that fails, try with id
+      if (error) {
+        const { error: error2 } = await supabase
+          .from("tblnotificacoes")
+          .update({ lido: true })
+          .eq("id", notificationId);
+        
+        if (error2) throw error2;
+      }
 
       // Atualiza a lista localmente
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      setNotifications(prev => prev.filter(n => n.id !== notificationId && n.notificacaoid !== notificationId));
       setUnreadCount(prev => prev - 1);
 
       return true;
@@ -104,4 +122,3 @@ export function useNotifications(pollInterval = 60000) { // 1 minuto
     unreadCount
   };
 }
-

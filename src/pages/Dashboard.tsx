@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -11,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Ensure consistent status types
 type TaskStatus = "warning" | "Pendente" | "Concluido" | "Cancelado";
@@ -461,14 +461,16 @@ const Dashboard = () => {
                 <CardDescription>Próximos 30 dias</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {licencasPublicidadeAlertList.length === 0 && (
-                    <p className="text-muted-foreground">Nenhuma licença próxima do vencimento.</p>
-                  )}
-                  {licencasPublicidadeAlertList.map(({ vehicle, license, expiresIn }, idx) => (
-                    <LicenseAlert key={idx} vehicle={vehicle} license={license} expiresIn={expiresIn} />
-                  ))}
-                </div>
+                <ScrollArea className="h-[170px] pr-4">
+                  <div className="space-y-2">
+                    {licencasPublicidadeAlertList.length === 0 && (
+                      <p className="text-muted-foreground">Nenhuma licença próxima do vencimento.</p>
+                    )}
+                    {licencasPublicidadeAlertList.map(({ vehicle, license, expiresIn }, idx) => (
+                      <LicenseAlert key={idx} vehicle={vehicle} license={license} expiresIn={expiresIn} />
+                    ))}
+                  </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>
@@ -480,14 +482,16 @@ const Dashboard = () => {
                 <CardDescription>Agendamentos para os próximos dias</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {proximosAgendamentos.length === 0 && (
-                    <p className="text-muted-foreground">Nenhum agendamento pendente.</p>
-                  )}
-                  {proximosAgendamentos.map(({ id, title, description, date, status }) => (
-                    <UpcomingItem key={id} title={title} description={description} date={date} status={status} />
-                  ))}
-                </div>
+                <ScrollArea className="h-[220px] pr-4">
+                  <div className="space-y-2">
+                    {proximosAgendamentos.length === 0 && (
+                      <p className="text-muted-foreground">Nenhum agendamento pendente.</p>
+                    )}
+                    {proximosAgendamentos.map(({ id, title, description, date, status }) => (
+                      <UpcomingItem key={id} title={title} description={description} date={date} status={status} />
+                    ))}
+                  </div>
+                </ScrollArea>
               </CardContent>
             </Card>
 
@@ -497,12 +501,14 @@ const Dashboard = () => {
                 <CardDescription>Serviços realizados recentemente</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {ultimosServicos.length === 0 && <p className="text-muted-foreground">Nenhum serviço registrado.</p>}
-                  {ultimosServicos.map(({ id, title, description, date, status }) => (
-                    <UpcomingItem key={id} title={title} description={description} date={date} status={status} />
-                  ))}
-                </div>
+                <ScrollArea className="h-[220px] pr-4">
+                  <div className="space-y-2">
+                    {ultimosServicos.length === 0 && <p className="text-muted-foreground">Nenhum serviço registrado.</p>}
+                    {ultimosServicos.map(({ id, title, description, date, status }) => (
+                      <UpcomingItem key={id} title={title} description={description} date={date} status={status} />
+                    ))}
+                  </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </div>

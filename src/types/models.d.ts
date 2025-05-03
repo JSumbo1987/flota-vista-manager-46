@@ -1,3 +1,4 @@
+
 // Common type definitions to fix TypeScript errors
 
 // Certificado type
@@ -55,6 +56,8 @@ interface Servico {
   tblprestador: {
     prestadornome: string;
   };
+  dataservico?: string;
+  status?: "pending" | "completed" | "canceled" | "warning";
 }
 
 // TipoUsuario type
@@ -143,4 +146,5 @@ interface Notification {
   lido: boolean;
   rota: string;
   created_at: string;
+  notificacaoid?: string;
 }

@@ -295,6 +295,32 @@ const FuncionariosList = () => {
     window.open(publicURL, "_blank");
   };
 
+  const getDownloadURL = async (path: string) => {
+    try {
+      const { data, error } = await supabase.storage.from('funcionarios').download(path);
+      if (error) {
+        throw error;
+      }
+      return URL.createObjectURL(data);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      return null;
+    }
+  };
+
+  const getPublicURL = async (path: string) => {
+    try {
+      const { data, error } = await supabase.storage.from('funcionarios').getPublicUrl(path);
+      if (error) {
+        throw error;
+      }
+      return data.publicUrl; // This is the correct property name
+    } catch (error) {
+      console.error('Error getting public URL:', error);
+      return null;
+    }
+  };
+
   const handleViewImage = async (url) => {
     try {
       const { data } = await supabase.storage.from("funcionarios").getPublicUrl(url);
