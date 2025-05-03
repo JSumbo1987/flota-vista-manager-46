@@ -34,7 +34,7 @@ const NotificacoesSettings = () => {
   useEffect(() => {
     if (!usuario) return;
     
-    const userId = usuario.userid || usuario.id;
+    const userId = usuario.userid || usuario.userid;
     if (!userId) return;
 
     const fetchSettings = async () => {

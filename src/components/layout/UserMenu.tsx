@@ -25,7 +25,7 @@ const UserMenu = () => {
   };
 
   // Exemplo simples para mostrar "Administrador" se tiver permissão
-  const isAdmin = usuario?.permissoes.some(p => p.nome === "ADMIN") ?? false;
+  const isAdmin = (usuario?.permissoes ?? []).some(p => p.nome === "ADMIN");
 
   // Para fallback no nome, pode usar a inicial do email ou outro dado
   const nomeExibido = isAdmin ? "Administrador" : usuario?.funcionarioId ? `#${usuario.usernome}` : "Usuário";

@@ -230,9 +230,6 @@ const FuncionariosList = () => {
       setShowDeleteDialog(false);
     }
   };
-  
-  
-  
 
   const viewDetails = (funcionario: Funcionario) => {
     setSelectedFuncionario(funcionario);
@@ -256,54 +253,6 @@ const FuncionariosList = () => {
         );
       default:
         return <Badge variant="outline">{estado}</Badge>;
-    }
-  };
-
-  const handleViewArquivos = async (funcionarioId: number) => {
-    const { data, error } = await supabase
-      .storage
-      .from("documentos")
-      .list(`funcionarios/${funcionarioId}`, {
-        limit: 100,
-        offset: 0,
-        sortBy: { column: "name", order: "asc" },
-      });
-  
-    if (error) {
-      toast({
-        title: "Erro ao listar arquivos",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-  
-    if (data.length === 0) {
-      toast({
-        title: "Sem arquivos",
-        description: "Nenhum arquivo encontrado para este funcionário.",
-      });
-      return;
-    }
-  
-    // Abrir os arquivos encontrados (simples: abrir o primeiro arquivo)
-    const {publicURL} = supabase
-      .storage
-      .from("documentos")
-      .getPublicUrl(`funcionarios/${funcionarioId}/${data[0].name}`);
-  
-    window.open(publicURL, "_blank");
-  };
-
-  const handleViewImage = async (url) => {
-    try {
-      const { data } = await supabase.storage.from("funcionarios").getPublicUrl(url);
-      
-      if (data && data.publicUrl) {
-        window.open(data.publicUrl, "_blank");
-      }
-    } catch (error) {
-      console.error("Erro ao obter URL público:", error);
     }
   };
 

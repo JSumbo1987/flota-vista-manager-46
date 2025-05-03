@@ -34,12 +34,35 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
+// Tipos corrigidos para incluir os campos relacionados
+interface Viatura {
+  viaturamarca: string;
+  viaturamatricula: string;
+  viaturamodelo: string;
+}
+
+interface TipoAssistencia {
+  nome: string;
+}
+
+interface CategoriaAssistencia {
+  nome: string;
+}
+
+interface Prestador {
+  prestadornome: string;
+}
+
 interface Servico {
   id: number;
-  viatura: string;
-  tipo: string;
-  categoria: string;
-  prestador: string;
+  viaturaid: number;  // Ajustado para refletir que é uma chave de viatura
+  tipoid: number;     // Ajustado para refletir que é uma chave de tipo
+  categoriaid: number;  // Ajustado para refletir que é uma chave de categoria
+  prestadorid: number;  // Ajustado para refletir que é uma chave de prestador
+  viatura: Viatura; // Relacionamento com viatura
+  tipo: TipoAssistencia; // Relacionamento com tipo de assistência
+  categoria: CategoriaAssistencia; // Relacionamento com categoria
+  prestador: Prestador; // Relacionamento com prestador
   dataservico: string;
   custo: string;
   observacoes: string | null;
@@ -71,23 +94,23 @@ const ServicoDetails = ({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Viatura</p>
-            <p className="text-sm font-medium">{servico.tblviaturas.viaturamarca}</p>
+            <p className="text-sm font-medium">{servico.viatura.viaturamarca}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Matrícula</p>
-            <p className="text-sm font-medium">{servico.tblviaturas.viaturamatricula}</p>
+            <p className="text-sm font-medium">{servico.viatura.viaturamatricula}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Tipo de Serviço</p>
-            <p className="text-sm font-medium">{servico.tbltipoassistencia?.nome}</p>
+            <p className="text-sm font-medium">{servico.tipo?.nome}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Categoria do Serviço</p>
-            <p className="text-sm font-medium">{servico.tblcategoriaassistencia?.nome}</p>
+            <p className="text-sm font-medium">{servico.categoria?.nome}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Prestador de Serviço</p>
-            <p className="text-sm font-medium">{servico.tblprestador.prestadornome}</p>
+            <p className="text-sm font-medium">{servico.prestador.prestadornome}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Data do Serviço</p>
@@ -250,10 +273,10 @@ const ServicosList = () => {
               ) : (
                 servicos.map((servico) => (
                   <TableRow key={servico.id}>
-                    <TableCell>{servico.tblviaturas.viaturamarca} ( {servico.tblviaturas.viaturamatricula} )</TableCell>
-                    <TableCell>{servico.tbltipoassistencia?.nome}</TableCell>
-                    <TableCell>{servico.tblcategoriaassistencia?.nome}</TableCell>
-                    <TableCell>{servico.tblprestador?.prestadornome}</TableCell>
+                    <TableCell>{servico.viatura.viaturamarca} ( {servico.viatura.viaturamatricula} )</TableCell>
+                    <TableCell>{servico.tipo?.nome}</TableCell>
+                    <TableCell>{servico.categoria?.nome}</TableCell>
+                    <TableCell>{servico.prestador?.prestadornome}</TableCell>
                     <TableCell>
                       {new Date(servico.dataservico).toLocaleDateString("pt-PT")}
                     </TableCell>

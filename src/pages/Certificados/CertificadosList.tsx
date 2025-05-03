@@ -18,13 +18,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
-
 interface Certificado {
   id: string;
-  numero: string;
-  viatura: string;
-  dataEmissao: string;
-  dataValidade: string;
+  numerocertificado: string;
+  centroinspeccao: string;
+  datahorainspeccao: string;
+  proximainspeccao: string;
+  tblviaturas: {
+    viaturamatricula: string;
+    viaturamodelo: string;
+    viaturamarca: string; 
+  };
   entidadeEmissora: string;
   status: "válido" | "a_vencer" | "expirado";
   copiadocertificado?: string; // novo campo

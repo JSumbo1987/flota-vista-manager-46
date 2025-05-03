@@ -10,7 +10,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import bcrypt from "bcryptjs"; // Instalar com: npm i bcryptjs
+import { useAuth } from "@/pages/Auth/AuthContext";
 
+interface Usuario {
+  userid: string;
+  useremail: string;
+  usernome: string;
+  userpassword: string;
+  tblusuariofuncionario?: {
+    funcionarioid: string;
+  } | null;
+  tblpermissoes?: {
+    permissaoid: string;
+    nomepermissao: string;
+    [key: string]: any;
+  }[] | null;
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -20,6 +35,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +53,7 @@ const Login = () => {
 
     try {
       const { data: user, error } = await supabase
-        .from("tblusuarios")
+        .from<Usuario>("tblusuarios")
         .select("userid, useremail, usernome, userpassword, tblusuariofuncionario(funcionarioid), tblpermissoes(*)")
         .eq("useremail", email)
         .single();
@@ -64,14 +80,14 @@ const Login = () => {
         return;
       }
 
-    // Aqui você pode armazenar os dados do usuário em um context ou localStorage
-    localStorage.setItem("usuario", JSON.stringify({
-      userid: user.userid,
-      useremail: user.useremail,
-      usernome: user.usernome,
-      funcionarioId: user.tblusuariofuncionario?.funcionarioid,
-      permissoes: user.tblpermissoes || [],
-    }));
+      // Aqui você pode armazenar os dados do usuário em um context ou localStorage
+      login({
+        userid: user.userid,
+        useremail: user.useremail,
+        usernome: user.usernome,
+        funcionarioId: user.tblusuariofuncionario?.funcionarioid,
+        permissoes: user.tblpermissoes?.userid,
+      });
 
       toast({
         title: "Login realizado com sucesso!",
