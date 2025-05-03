@@ -64,14 +64,14 @@ const Login = () => {
         return;
       }
 
-    // Aqui você pode armazenar os dados do usuário em um context ou localStorage
-    localStorage.setItem("usuario", JSON.stringify({
-      userid: user.userid,
-      useremail: user.useremail,
-      usernome: user.usernome,
-      funcionarioId: user.tblusuariofuncionario?.funcionarioid,
-      permissoes: user.tblpermissoes || [],
-    }));
+      // Store user data in localStorage
+      localStorage.setItem("usuario", JSON.stringify({
+        userid: user.userid,
+        useremail: user.useremail,
+        usernome: user.usernome,
+        funcionarioId: user.tblusuariofuncionario?.funcionarioid || null,
+        permissoes: user.tblpermissoes || [],
+      }));
 
       toast({
         title: "Login realizado com sucesso!",

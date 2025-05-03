@@ -1,15 +1,7 @@
 
-import { Plus, Edit, Trash2, Eye } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { MenuPermission } from "../../models/permission.types";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { MenuPermission } from "@/pages/Configuracoes/models/permission.types";
 
 interface PermissionsTableProps {
   menuPermissions: MenuPermission[];
@@ -22,70 +14,65 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Menu</TableHead>
-            <TableHead className="text-center w-24">
-              <div className="flex items-center justify-center gap-1">
-                <Plus className="h-4 w-4" />
-                <span>Inserir</span>
-              </div>
-            </TableHead>
-            <TableHead className="text-center w-24">
-              <div className="flex items-center justify-center gap-1">
-                <Edit className="h-4 w-4" />
-                <span>Editar</span>
-              </div>
-            </TableHead>
-            <TableHead className="text-center w-24">
-              <div className="flex items-center justify-center gap-1">
-                <Trash2 className="h-4 w-4" />
-                <span>Excluir</span>
-              </div>
-            </TableHead>
-            <TableHead className="text-center w-24">
-              <div className="flex items-center justify-center gap-1">
-                <Eye className="h-4 w-4" />
-                <span>Visualizar</span>
-              </div>
-            </TableHead>
+            <TableHead className="w-[250px]">Nome do Menu</TableHead>
+            <TableHead className="text-center w-[100px]">Visualizar</TableHead>
+            <TableHead className="text-center w-[100px]">Inserir</TableHead>
+            <TableHead className="text-center w-[100px]">Editar</TableHead>
+            <TableHead className="text-center w-[100px]">Excluir</TableHead>
+            <TableHead className="text-center w-[100px]">URL</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {menuPermissions.map(menu => (
+          {menuPermissions.map((menu) => (
             <TableRow key={menu.id}>
-              <TableCell className="font-medium">{menu.name}</TableCell>
+              <TableCell className="font-medium">{menu.nomeMenu}</TableCell>
+              
               <TableCell className="text-center">
-                <div className="flex justify-center">
-                  <Switch
-                    checked={menu.canInsert}
-                    onCheckedChange={(value) => onPermissionChange(menu.id, 'canInsert', value)}
-                    disabled={menu.id === "dashboard" || menu.id === "notificacoes" || menu.id === "configuracoes"}
-                  />
-                </div>
+                <Checkbox
+                  id={`view-${menu.id}`}
+                  checked={menu.canView}
+                  onCheckedChange={(checked) => 
+                    onPermissionChange(menu.id, 'canView', !!checked)
+                  }
+                  aria-label={`Permissão para visualizar ${menu.nomeMenu}`}
+                />
               </TableCell>
+              
               <TableCell className="text-center">
-                <div className="flex justify-center">
-                  <Switch
-                    checked={menu.canEdit}
-                    onCheckedChange={(value) => onPermissionChange(menu.id, 'canEdit', value)}
-                  />
-                </div>
+                <Checkbox
+                  id={`insert-${menu.id}`}
+                  checked={menu.canInsert}
+                  onCheckedChange={(checked) => 
+                    onPermissionChange(menu.id, 'canInsert', !!checked)
+                  }
+                  aria-label={`Permissão para inserir em ${menu.nomeMenu}`}
+                />
               </TableCell>
+              
               <TableCell className="text-center">
-                <div className="flex justify-center">
-                  <Switch
-                    checked={menu.canDelete}
-                    onCheckedChange={(value) => onPermissionChange(menu.id, 'canDelete', value)}
-                    disabled={menu.id === "dashboard" || menu.id === "configuracoes"}
-                  />
-                </div>
+                <Checkbox
+                  id={`edit-${menu.id}`}
+                  checked={menu.canEdit}
+                  onCheckedChange={(checked) => 
+                    onPermissionChange(menu.id, 'canEdit', !!checked)
+                  }
+                  aria-label={`Permissão para editar ${menu.nomeMenu}`}
+                />
               </TableCell>
+              
               <TableCell className="text-center">
-                <div className="flex justify-center">
-                  <Switch
-                    checked={menu.canView}
-                    onCheckedChange={(value) => onPermissionChange(menu.id, 'canView', value)}
-                  />
-                </div>
+                <Checkbox
+                  id={`delete-${menu.id}`}
+                  checked={menu.canDelete}
+                  onCheckedChange={(checked) => 
+                    onPermissionChange(menu.id, 'canDelete', !!checked)
+                  }
+                  aria-label={`Permissão para excluir ${menu.nomeMenu}`}
+                />
+              </TableCell>
+              
+              <TableCell className="text-center text-xs text-muted-foreground">
+                {menu.canurl}
               </TableCell>
             </TableRow>
           ))}

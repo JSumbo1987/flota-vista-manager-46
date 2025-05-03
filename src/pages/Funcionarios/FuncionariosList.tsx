@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -231,9 +232,6 @@ const FuncionariosList = () => {
     }
   };
   
-  
-  
-
   const viewDetails = (funcionario: Funcionario) => {
     setSelectedFuncionario(funcionario);
     setShowDetailsDialog(true);
@@ -287,12 +285,12 @@ const FuncionariosList = () => {
     }
   
     // Abrir os arquivos encontrados (simples: abrir o primeiro arquivo)
-    const {publicURL} = supabase
+    const { data: publicUrlData } = supabase
       .storage
       .from("documentos")
       .getPublicUrl(`funcionarios/${funcionarioId}/${data[0].name}`);
   
-    window.open(publicURL, "_blank");
+    window.open(publicUrlData.publicUrl, "_blank");
   };
 
   const getDownloadURL = async (path: string) => {
@@ -321,7 +319,7 @@ const FuncionariosList = () => {
     }
   };
 
-  const handleViewImage = async (url) => {
+  const handleViewImage = async (url: string) => {
     try {
       const { data } = await supabase.storage.from("funcionarios").getPublicUrl(url);
       

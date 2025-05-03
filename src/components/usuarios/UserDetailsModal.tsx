@@ -286,7 +286,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ isOpen, onClose, us
       <ResetPasswordDialog 
         isOpen={isResetPasswordOpen} 
         onClose={() => setIsResetPasswordOpen(false)} 
-        userID={userID}
+        userId={userID}
         userName={userDetails.usernome || ''}
       />
     </>
