@@ -39,7 +39,6 @@ const PerfilUsuario = () => {
         if (error) {
           throw error;
         }
-        
         if (data) {
           // Format the data to match our PerfilUsuarioData type
           const formattedData: PerfilUsuarioData = {
@@ -47,10 +46,10 @@ const PerfilUsuario = () => {
             usernome: data.usernome,
             useremail: data.useremail,
             tbltipousuarios: data.tbltipousuarios ? {
-              descricaotipo: data.tbltipousuarios.descricao
+              descricaotipo: data.tbltipousuarios.descricaotipo
             } : undefined,
             tblgrupousuarios: data.tblgrupousuarios ? {
-              gruponame: data.tblgrupousuarios.nome
+              gruponame: data.tblgrupousuarios.gruponame
             } : undefined,
             tblusuariofuncionario: data.tblusuariofuncionario && data.tblusuariofuncionario.tblfuncionarios ? {
               tblfuncionarios: {
@@ -64,6 +63,7 @@ const PerfilUsuario = () => {
           };
           
           setPerfil(formattedData);
+          console.log(perfil);
         }
         
       } catch (error) {
