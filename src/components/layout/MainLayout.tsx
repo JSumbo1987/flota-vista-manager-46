@@ -60,14 +60,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
                 onClick={toggleSidebarCollapse}
                 className="hidden lg:flex"
                 title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}

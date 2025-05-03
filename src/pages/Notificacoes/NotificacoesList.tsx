@@ -69,9 +69,9 @@ const NotificacoesList = () => {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (usuario?.userid) {
+      /*if (usuario?.userid) {
         query = query.eq("usuarioid", usuario.userid);
-      }
+      }*/
 
       if (filtro === "lidas") {
         query = query.eq("lido", true);

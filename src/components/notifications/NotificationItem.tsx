@@ -5,11 +5,11 @@ import { Badge } from "@/components/ui/badge";
 
 interface NotificationItemProps {
   notification: {
-    notificacaoid: string;
+    id: string;
     titulo: string;
     mensagem: string;
     tipo: "info" | "warning" | "success" | "error";
-    lida: boolean;
+    lido: boolean;
     actionurl?: string;
   };
   formattedDate: string;
@@ -50,7 +50,7 @@ const NotificationItem = ({
 
   return (
     <div 
-      className={`p-4 rounded-md border ${notification.lida ? 'bg-muted/30' : 'bg-card'}`}
+      className={`p-4 rounded-md border ${notification.lido ? 'bg-muted/30' : 'bg-card'}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-4">
@@ -62,7 +62,7 @@ const NotificationItem = ({
           <div>
             <div className="flex items-center gap-2">
               <h4 className="font-medium">{notification.titulo}</h4>
-              {!notification.lida && (
+              {!notification.lido && (
                 <Badge variant="default" className="text-xs">Nova</Badge>
               )}
             </div>
@@ -73,7 +73,7 @@ const NotificationItem = ({
           </div>
         </div>
         <div className="flex space-x-1">
-          {!notification.lida && (
+          {!notification.lido && (
             <Button 
               variant="ghost" 
               size="icon"
