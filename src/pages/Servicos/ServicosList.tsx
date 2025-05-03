@@ -59,10 +59,10 @@ interface Servico {
   tipoid: number;     // Ajustado para refletir que é uma chave de tipo
   categoriaid: number;  // Ajustado para refletir que é uma chave de categoria
   prestadorid: number;  // Ajustado para refletir que é uma chave de prestador
-  viatura: Viatura; // Relacionamento com viatura
-  tipo: TipoAssistencia; // Relacionamento com tipo de assistência
-  categoria: CategoriaAssistencia; // Relacionamento com categoria
-  prestador: Prestador; // Relacionamento com prestador
+  tblviaturas: Viatura; // Relacionamento com viatura
+  tbltipoassistencia: TipoAssistencia; // Relacionamento com tipo de assistência
+  tblcategoriaassistencia: CategoriaAssistencia; // Relacionamento com categoria
+  tblprestador: Prestador; // Relacionamento com prestador
   dataservico: string;
   custo: string;
   observacoes: string | null;
@@ -273,10 +273,10 @@ const ServicosList = () => {
               ) : (
                 servicos.map((servico) => (
                   <TableRow key={servico.id}>
-                    <TableCell>{servico.viatura.viaturamarca} ( {servico.viatura.viaturamatricula} )</TableCell>
-                    <TableCell>{servico.tipo?.nome}</TableCell>
-                    <TableCell>{servico.categoria?.nome}</TableCell>
-                    <TableCell>{servico.prestador?.prestadornome}</TableCell>
+                    <TableCell>{servico.tblviaturas?.viaturamarca} ( {servico.tblviaturas?.viaturamatricula} )</TableCell>
+                    <TableCell>{servico.tbltipoassistencia?.nome}</TableCell>
+                    <TableCell>{servico.tblcategoriaassistencia?.nome}</TableCell>
+                    <TableCell>{servico.tblprestador?.prestadornome}</TableCell>
                     <TableCell>
                       {new Date(servico.dataservico).toLocaleDateString("pt-PT")}
                     </TableCell>
