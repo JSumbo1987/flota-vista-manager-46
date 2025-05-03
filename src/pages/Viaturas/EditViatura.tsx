@@ -26,7 +26,6 @@ const combustiveis = ["Gasolina", "Gasóleo", "Elétrico", "Híbrido"];
 
 const EditViatura = () => {
   const { viaturaId } = useParams();
-  console.log(viaturaId);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);

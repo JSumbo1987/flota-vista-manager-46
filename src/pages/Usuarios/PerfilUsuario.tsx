@@ -63,7 +63,6 @@ const PerfilUsuario = () => {
           };
           
           setPerfil(formattedData);
-          console.log(perfil);
         }
         
       } catch (error) {

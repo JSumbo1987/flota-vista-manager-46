@@ -117,7 +117,7 @@ const ListaViaturasAtribuidas = () => {
           </TableHeader>
           <TableBody>
             {viaturasAtribuidas.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow key={item.tblviaturas?.viaturaid}>
                 <TableCell>
                   {item.tblviaturas?.viaturamarca}{" "}
                   {item.tblviaturas?.viaturamodelo}

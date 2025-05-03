@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { gerarHashSenha } from "@/hooks/GerarHashSenha";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface FuncionarioParcial {
   funcionarionome: string;
@@ -39,38 +40,49 @@ const CriarContaAcesso = () => {
   const [grupoSelecionado, setGrupoSelecionado] = useState<number | null>(null);
   const [tipoSelecionado, setTipoSelecionado] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [funcionarioJaTemConta, setFuncionarioJaTemConta] = useState(false);
+  const [issLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchData() {
-      const { data: funcionarioData, error: funcionarioError } = await supabase
-        .from("tblfuncionarios")
-        .select("funcionarioid, funcionarionome, funcionarioemail, funcaotipoid, categoriaid")
-        .eq("funcionarioid", funcionarioid)
-        .single();
+    const carregarDados = async () => {
+      try {
+        setIsLoading(true);
+        const [{ data: funcionarioData, error: funcionarioError }] = await Promise.all([
+          supabase
+            .from("tblfuncionarios")
+            .select("funcionarioid, funcionarionome, funcionarioemail, funcaotipoid, categoriaid")
+            .eq("funcionarioid", funcionarioid)
+            .single(),
+        ]);
+  
+        if (funcionarioError) throw funcionarioError;
+        setFuncionario(funcionarioData);
 
-      if (funcionarioError) {
+        const { data: gruposData } = await supabase.from("tblgrupousuarios")
+          .select("grupoid, gruponame");
+          setGrupoUsuarios(gruposData || []);
+
+      const { data: tiposData } = await supabase.from("tbltipousuarios")
+        .select("tipoid, descricaotipo");
+        setTipoUsuarios(tiposData || []);
+
+        //Verificar se o funcionário já tem conta.
+        await verificarContaDeAcesso(funcionarioid);
+      } catch (error) {
         toast({
           title: "Erro ao buscar funcionário",
-          description: funcionarioError.message,
+          description: `Erro ao carregar dados: ${error.message}`,
           variant: "destructive",
         });
-      } else {
-        setFuncionario(funcionarioData);
+        navigate("/funcionarios");
+      } finally {
+        setIsLoading(false);
       }
-
-      const { data: gruposData } = await supabase
-        .from("tblgrupousuarios")
-        .select("grupoid, gruponame");
-      setGrupoUsuarios(gruposData || []);
-
-      const { data: tiposData } = await supabase
-        .from("tbltipousuarios")
-        .select("tipoid, descricaotipo");
-      setTipoUsuarios(tiposData || []);
-    }
-
-    fetchData();
-  }, [funcionarioid, toast]);
+    };
+  
+    carregarDados();
+  }, [funcionarioid, navigate, toast]);
+  
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -138,6 +150,29 @@ const CriarContaAcesso = () => {
     }
   }
 
+  const verificarContaDeAcesso = async (funcionarioid) => {
+    const { data, error } = await supabase
+      .from("tblusuariofuncionario")
+      .select("*")
+      .eq("funcionarioid", funcionarioid);
+  
+    if (error) {
+      console.error("Erro ao verificar conta de acesso:", error.message);
+      return;
+    }
+  
+    if (data.length > 0) {
+      toast({
+        title: "Funcionário já possui conta de acesso",
+        description: "Não é possível criar uma nova conta para este funcionário.",
+        variant: "destructive"
+      });
+      setFuncionarioJaTemConta(true);
+    } else {
+      setFuncionarioJaTemConta(false);
+    }
+  };
+
   if (!funcionario) {
     return <p>Carregando dados do funcionário...</p>;
   }
@@ -159,6 +194,12 @@ const CriarContaAcesso = () => {
           <CardHeader>
             <CardTitle>Dados da Conta</CardTitle>
             <CardDescription>Informações do Funcionário e criação de senha</CardDescription>
+            {funcionarioJaTemConta && (
+              <Alert variant="destructive">
+                <AlertTitle>Funcionário já possui conta de acesso</AlertTitle>
+                <AlertDescription>Não é possível criar uma nova conta para este funcionário.</AlertDescription>
+              </Alert>
+            )}
           </CardHeader>
 
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -196,6 +237,7 @@ const CriarContaAcesso = () => {
                 onChange={(e) => setConfirmarSenha(e.target.value)}
                 placeholder="Confirme a senha"
                 required
+                disabled={funcionarioJaTemConta}
               />
             </div>
             <div>
@@ -205,6 +247,7 @@ const CriarContaAcesso = () => {
                 value={grupoSelecionado ?? ""}
                 onChange={(e) => setGrupoSelecionado(Number(e.target.value))}
                 required
+                disabled={funcionarioJaTemConta}
               >
                 <option value="">Selecione o grupo</option>
                 {grupoUsuarios.map((g) => (
@@ -217,6 +260,7 @@ const CriarContaAcesso = () => {
             <div>
               <Label>Tipo de Usuário*</Label>
               <select
+                disabled={funcionarioJaTemConta}
                 className="w-full p-2 border rounded"
                 value={tipoSelecionado ?? ""}
                 onChange={(e) => setTipoSelecionado(Number(e.target.value))}
@@ -236,7 +280,7 @@ const CriarContaAcesso = () => {
             <Button type="button" variant="outline" onClick={() => navigate("/funcionarios")}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={funcionarioJaTemConta || isSubmitting}>
               {isSubmitting ? "Criando..." : "Criar Conta"}
             </Button>
           </CardFooter>
