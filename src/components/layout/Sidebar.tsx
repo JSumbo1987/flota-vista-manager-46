@@ -1,24 +1,12 @@
-
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
-  Car, 
-  Users, 
-  Calendar, 
-  FileText, 
-  Clipboard, 
-  Settings, 
-  User, 
-  Bell, 
-  LogOut, 
-  Home, 
-  FileCheck, 
-  Truck, 
-  Award,
-  Menu
+  Car, Users, Calendar, FileText, Clipboard, Settings, User, 
+  Bell, LogOut, Home, FileCheck, Truck, Award 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { usePermissao } from "@/hooks/usePermissao";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -54,42 +42,32 @@ const NavItem = ({ icon: Icon, label, href, isActive, onClick, collapsed }: NavI
 const Sidebar = ({ onClose, collapsed, onToggleCollapse }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const { temPermissao } = usePermissao();
+
   const handleNavigation = (path: string) => {
     navigate(path);
     if (onClose) onClose();
   };
 
   const navItems = [
-    { icon: Home, label: "Dashboard", href: "/" },
-    { icon: Car, label: "Viaturas", href: "/viaturas" },
-    { icon: Users, label: "Funcionários", href: "/funcionarios" },
-    { icon: Calendar, label: "Agendamentos", href: "/agendamentos" },
-    { icon: FileText, label: "Serviços", href: "/servicos" },
-    { icon: Clipboard, label: "Checklist", href: "/checklist" },
-    { 
-      icon: FileCheck, 
-      label: "Certificados", 
-      href: "/certificados" 
-    },
-    { 
-      icon: Truck, 
-      label: "Licença Transporte", 
-      href: "/licenca-transporte" 
-    },
-    { 
-      icon: Award, 
-      label: "Licença Publicidade", 
-      href: "/licenca-publicidade" 
-    },
-    { icon: User, label: "Usuários", href: "/usuarios" },
-    { icon: Bell, label: "Notificações", href: "/notificacoes" },
-    { icon: Settings, label: "Configurações", href: "/configuracoes" },
+    { icon: Home, label: "Dashboard", href: "/", permissao: "dashboard" },
+    { icon: Car, label: "Viaturas", href: "/viaturas", permissao: "viaturas" },
+    { icon: Users, label: "Funcionários", href: "/funcionarios", permissao: "funcionarios" },
+    { icon: Calendar, label: "Agendamentos", href: "/agendamentos", permissao: "agendamentos" },
+    { icon: FileText, label: "Serviços", href: "/servicos", permissao: "servicos" },
+    { icon: Clipboard, label: "Checklist", href: "/checklist", permissao: "checklist" },
+    { icon: FileCheck, label: "Certificados", href: "/certificados", permissao: "certificados" },
+    { icon: Truck, label: "Licença Transporte", href: "/licenca-transporte", permissao: "licenca-transporte" },
+    { icon: Award, label: "Licença Publicidade", href: "/licenca-publicidade", permissao: "licenca-publicidade" },
+    { icon: User, label: "Usuários", href: "/usuarios", permissao: "usuarios" },
+    { icon: Bell, label: "Notificações", href: "/notificacoes", permissao: "notificacoes" },
+    { icon: Settings, label: "Configurações", href: "/configuracoes", permissao: "configuracoes" },
   ];
 
   return (
     <div className={cn("h-full bg-sidebar flex flex-col border-r border-sidebar-border transition-all duration-300", 
       collapsed ? "w-16" : "w-64")}>
+      
       {/* Logo */}
       <div className="p-6 flex items-center">
         <Car className={cn("h-6 w-6", collapsed ? "mr-0" : "mr-2")} />
@@ -98,17 +76,19 @@ const Sidebar = ({ onClose, collapsed, onToggleCollapse }: SidebarProps) => {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto flota-scrollbar">
-        {navItems.map((item) => (
-          <NavItem
-            key={item.href}
-            icon={item.icon}
-            label={item.label}
-            href={item.href}
-            isActive={location.pathname === item.href}
-            onClick={() => handleNavigation(item.href)}
-            collapsed={collapsed}
-          />
-        ))}
+        {navItems.map((item) =>
+          temPermissao(item.permissao) && (
+            <NavItem
+              key={item.href}
+              icon={item.icon}
+              label={item.label}
+              href={item.href}
+              isActive={location.pathname === item.href}
+              onClick={() => handleNavigation(item.href)}
+              collapsed={collapsed}
+            />
+          )
+        )}
       </nav>
 
       {/* Logout button */}
@@ -118,7 +98,6 @@ const Sidebar = ({ onClose, collapsed, onToggleCollapse }: SidebarProps) => {
           className={cn("text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
             collapsed ? "w-10 h-10 p-0" : "w-full justify-start gap-3 px-3")}
           onClick={() => {
-            // TODO: Add logout logic
             handleNavigation("/login");
           }}
         >
@@ -131,3 +110,4 @@ const Sidebar = ({ onClose, collapsed, onToggleCollapse }: SidebarProps) => {
 };
 
 export default Sidebar;
+

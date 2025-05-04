@@ -12,20 +12,31 @@ import { supabase } from "@/lib/supabaseClient";
 import bcrypt from "bcryptjs"; // Instalar com: npm i bcryptjs
 import { useAuth } from "@/pages/Auth/AuthContext";
 
-interface Usuario {
-  userid: string;
+// Interface para resposta do Supabase (contém userpassword)
+interface UsuarioSupabase {
+  userid: number;
   useremail: string;
   usernome: string;
   userpassword: string;
   tblusuariofuncionario?: {
-    funcionarioid: string;
+    funcionarioid: number;
   } | null;
-  tblpermissoes?: {
-    permissaoid: string;
-    nomepermissao: string;
-    [key: string]: any;
-  }[] | null;
-};
+  tblgrupousuarios?: {
+    grupoid: number;
+  } | null;
+}
+
+
+// Interface usada no AuthContext
+interface Usuario {
+  userid: number;
+  useremail: string;
+  usernome: string;
+  funcionarioId?: number;
+  grupoid?: number;
+}
+
+
 
 const Login = () => {
   const navigate = useNavigate();
@@ -39,7 +50,7 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!email || !password) {
       toast({
         title: "Erro de validação",
@@ -48,16 +59,16 @@ const Login = () => {
       });
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
       const { data: user, error } = await supabase
-        .from<Usuario>("tblusuarios")
-        .select("userid, useremail, usernome, userpassword, tblusuariofuncionario(funcionarioid), tblpermissoes(*)")
-        .eq("useremail", email)
+        .from<UsuarioSupabase>("tblusuarios")
+        .select("userid, useremail, usernome, userpassword, tblusuariofuncionario(funcionarioid), tblgrupousuarios(grupoid)")
+        .eq("useremail", email.trim().toLowerCase())
         .single();
-
+  
       if (error || !user) {
         toast({
           title: "Usuário não encontrado",
@@ -67,9 +78,9 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
-      
+  
       const senhaCorreta = await bcrypt.compare(password, user.userpassword);
-
+  
       if (!senhaCorreta) {
         toast({
           title: "Senha incorreta",
@@ -79,21 +90,23 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
-
-      // Aqui você pode armazenar os dados do usuário em um context ou localStorage
-      login({
+  
+      // 🔐 Criar objeto sem a senha e com os nomes esperados pelo AuthContext
+      const usuarioLogado: Usuario = {
         userid: user.userid,
         useremail: user.useremail,
         usernome: user.usernome,
         funcionarioId: user.tblusuariofuncionario?.funcionarioid,
-        permissoes: user.tblpermissoes?.userid,
-      });
-
+        grupoid: user.tblgrupousuarios?.grupoid,
+      };
+  
+      login(usuarioLogado);
+  
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo ao sistema Flota Vista.",
       });
-
+  
       navigate("/");
     } catch (error) {
       console.error("Erro ao fazer login:", error);
@@ -106,6 +119,7 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

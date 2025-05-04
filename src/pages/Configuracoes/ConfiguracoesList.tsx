@@ -31,7 +31,7 @@ import PermissionsTab from "./components/PermissionsTab";
 const ConfiguracoesList = () => {
   const { toast } = useToast();
   const { usuario } = useAuth();
-  const isAdmin = (usuario?.permissoes ?? []).some(p => p.nome === "ADMIN");
+  const isAdmin = usuario?.permissoes?.some(p => p.cantodos) ?? false;
 
   return (
     <div className="space-y-4">

@@ -12,29 +12,32 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/pages/Auth/AuthContext"; // ajuste o caminho conforme seu projeto
+import { usePermissao } from "@/hooks/usePermissao";
 
 const UserMenu = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
   const { usuario, logout } = useAuth();
+  const { temPermissao } = usePermissao();
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  // Exemplo simples para mostrar "Administrador" se tiver permissão
-  const isAdmin = (usuario?.permissoes ?? []).some(p => p.nome === "ADMIN");
+  const isAdmin = usuario?.permissoes?.some(p => p.cantodos) ?? false;
+  const nomeExibido = isAdmin
+    ? "Administrador"
+    : usuario?.funcionarioId
+    ? `#${usuario.usernome}`
+    : "Usuário";
 
-  // Para fallback no nome, pode usar a inicial do email ou outro dado
-  const nomeExibido = isAdmin ? "Administrador" : usuario?.funcionarioId ? `#${usuario.usernome}` : "Usuário";
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            {/* Se tiver URL de avatar real, use aqui */}
             <AvatarImage src="/placeholder.svg" alt="User Avatar" />
             <AvatarFallback className="bg-primary text-primary-foreground">
               {usuario?.useremail?.[0].toUpperCase() || "U"}
@@ -56,10 +59,12 @@ const UserMenu = () => {
           <User className="mr-2 h-4 w-4" />
           <span>Meu Perfil</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/configuracoes")}>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Configurações</span>
-        </DropdownMenuItem>
+        {temPermissao("configuracoes") && (
+          <DropdownMenuItem onClick={() => navigate("/configuracoes")}>
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Configurações</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
@@ -71,4 +76,5 @@ const UserMenu = () => {
 };
 
 export default UserMenu;
+
 

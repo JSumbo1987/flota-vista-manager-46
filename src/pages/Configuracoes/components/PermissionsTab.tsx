@@ -30,7 +30,7 @@ const PermissionsTab = () => {
     { id: "configuracoes", nomeMenu: "Configurações", canInsert: false, canEdit: true, canDelete: false, canView: true, canTodos: false, canurl:'/configuracoes' },
   ]);
 
-  const handlePermissionChange = (menuId: string, permission: 'canInsert' | 'canEdit' | 'canDelete' | 'canView', value: boolean) => {
+  const handlePermissionChange = (menuId: string, permission: 'canInsert' | 'canEdit' | 'canDelete' | 'canView' | 'canTodos', value: boolean) => {
     setMenuPermissions(prev => 
       prev.map(menu => 
         menu.id === menuId 

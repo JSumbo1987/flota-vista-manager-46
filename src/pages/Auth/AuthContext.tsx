@@ -1,13 +1,27 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient"; // ajuste conforme seu caminho real
 
-type Usuario = {
+interface Permissao {
+  id: string;
+  permissaoid: string;
+  grupousuarioid: number;
+  caninsert: boolean;
+  canedit: boolean;
+  candelete: boolean;
+  canview: boolean;
+  cantodos: boolean;
+}
+
+interface Usuario {
   userid: number;
   useremail: string;
   usernome: string;
   funcionarioId?: number;
-  permissoes: any[];
-};
+  grupoid?: number;
+  permissoes: Permissao[];
+}
+
 
 type AuthContextType = {
   usuario: Usuario | null;
@@ -55,10 +69,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const login = (usuario: Usuario) => {
-    localStorage.setItem("usuario", JSON.stringify(usuario));
+  const login = async (usuario: Usuario) => {
+    let permissoes: any[] = [];
+
+    if (usuario.grupoid) {
+      const { data, error } = await supabase
+        .from("tblpermissoes")
+        .select("*")
+        .eq("grupousuarioid", usuario.grupoid);
+
+      if (error) {
+        console.error("Erro ao buscar permissões:", error.message);
+      } else {
+        permissoes = data || [];
+      }
+    }
+
+    const usuarioComPermissoes = {
+      ...usuario,
+      permissoes,
+    };
+
+    localStorage.setItem("usuario", JSON.stringify(usuarioComPermissoes));
     localStorage.setItem("login_timestamp", Date.now().toString());
-    setUsuario(usuario);
+    setUsuario(usuarioComPermissoes);
     navigate("/");
   };
 
@@ -86,4 +120,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
 

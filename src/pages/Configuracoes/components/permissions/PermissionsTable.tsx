@@ -5,7 +5,7 @@ import { MenuPermission } from "@/pages/Configuracoes/models/permission.types";
 
 interface PermissionsTableProps {
   menuPermissions: MenuPermission[];
-  onPermissionChange: (menuId: string, permission: 'canInsert' | 'canEdit' | 'canDelete' | 'canView', value: boolean) => void;
+  onPermissionChange: (menuId: string, permission: 'canInsert' | 'canEdit' | 'canDelete' | 'canView' | 'canTodos', value: boolean) => void;
 }
 
 const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTableProps) => {
@@ -19,7 +19,7 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
             <TableHead className="text-center w-[100px]">Inserir</TableHead>
             <TableHead className="text-center w-[100px]">Editar</TableHead>
             <TableHead className="text-center w-[100px]">Excluir</TableHead>
-            <TableHead className="text-center w-[100px]">URL</TableHead>
+            <TableHead className="text-center w-[100px]">Todos</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -71,8 +71,15 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
                 />
               </TableCell>
               
-              <TableCell className="text-center text-xs text-muted-foreground">
-                {menu.canurl}
+              <TableCell className="text-center">
+                <Checkbox
+                  id={`todos-${menu.id}`}
+                  checked={menu.canTodos}
+                  onCheckedChange={(checked) => 
+                    onPermissionChange(menu.id, 'canTodos', !!checked)
+                  }
+                  aria-label={`Permissão para Todos ${menu.nomeMenu}`}
+                />
               </TableCell>
             </TableRow>
           ))}
