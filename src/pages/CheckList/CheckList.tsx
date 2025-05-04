@@ -271,7 +271,7 @@ const ChecklistsList = () => {
           <h2 className="text-3xl font-bold tracking-tight">Checklists</h2>
           <p className="text-muted-foreground">Listagem de checklists de viaturas</p>
         </div>
-        {temPermissao("checklist","canview") && (<Button onClick={() => navigate("/checklist/add")}>
+        {temPermissao("checklist","caninsert") && (<Button onClick={() => navigate("/checklist/add")}>
           {" "}
           <Plus className="mr-2 h-4 w-4" /> Novo Checklist{" "}
         </Button>)}

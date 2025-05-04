@@ -187,7 +187,7 @@ const LicencaTransporteList = () => {
             Gerenciamento das licenças de transporte das viaturas
           </p>
         </div>
-        {temPermissao("licenca-transporte","canview") && (<Button onClick={() => navigate("/licencas-transporte/add")}>
+        {temPermissao("licenca-transporte","caninsert") && (<Button onClick={() => navigate("/licencas-transporte/add")}>
           <Plus className="mr-2 h-4 w-4" /> Nova Licença
         </Button>)}
       </div>

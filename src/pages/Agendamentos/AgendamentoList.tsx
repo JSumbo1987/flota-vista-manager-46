@@ -170,7 +170,7 @@ const AgendamentoList = () => {
           <h2 className="text-3xl font-bold tracking-tight">Agendamentos</h2>
           <p className="text-muted-foreground">Gerenciamento de agendamentos de serviços</p>
         </div>
-        {temPermissao("agendamentos","canview") && (<Button onClick={() => navigate("/agendamentos/add")}> 
+        {temPermissao("agendamentos","caninsert") && (<Button onClick={() => navigate("/agendamentos/add")}> 
           <Plus className="mr-2 h-4 w-4" /> Novo Agendamento 
         </Button>)}
       </div>
