@@ -34,6 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { usePermissao } from "@/hooks/usePermissao";
 
 interface Agendamento {
   id: number;
@@ -113,6 +114,7 @@ const AgendamentoList = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [agendamentoToDelete, setAgendamentoToDelete] = useState<number | null>(null);
+  const { temPermissao } = usePermissao();
 
   useEffect(() => {
     const fetchAgendamentos = async () => {
@@ -157,6 +159,10 @@ const AgendamentoList = () => {
     }
   };
 
+  if (!temPermissao('agendamentos',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -164,7 +170,9 @@ const AgendamentoList = () => {
           <h2 className="text-3xl font-bold tracking-tight">Agendamentos</h2>
           <p className="text-muted-foreground">Gerenciamento de agendamentos de serviços</p>
         </div>
-        <Button onClick={() => navigate("/agendamentos/add")}> <Plus className="mr-2 h-4 w-4" /> Novo Agendamento </Button>
+        {temPermissao("agendamentos","canview") && (<Button onClick={() => navigate("/agendamentos/add")}> 
+          <Plus className="mr-2 h-4 w-4" /> Novo Agendamento 
+        </Button>)}
       </div>
 
       <Card>
@@ -199,15 +207,15 @@ const AgendamentoList = () => {
                         <Button variant="ghost" size="icon"><ChevronDown className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => viewDetails(agendamento)}>
+                        {temPermissao("agendamentos","canview") && (<DropdownMenuItem onClick={() => viewDetails(agendamento)}>
                           <EyeIcon className="mr-2 h-4 w-4" /> Ver detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/agendamentos/edit/${agendamento.id}`)}>
+                        </DropdownMenuItem>)}
+                        {temPermissao("agendamentos","canedit") && (<DropdownMenuItem onClick={() => navigate(`/agendamentos/edit/${agendamento.id}`)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(agendamento.id)} className="text-destructive">
+                        </DropdownMenuItem>)}
+                        {temPermissao("agendamentos","candelete") && (<DropdownMenuItem onClick={() => handleDelete(agendamento.id)} className="text-destructive">
                           <Trash className="mr-2 h-4 w-4" /> Excluir
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>)}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

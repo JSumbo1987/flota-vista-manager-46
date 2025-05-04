@@ -42,16 +42,15 @@ interface CertificadoDetailsProps {
 
 const CertificadoDetails = ({ certificado, onClose }: CertificadoDetailsProps) => {
 const [signedUrl, setSignedUrl] = useState<string | null>(null);
-const { temPermissao } = usePermissao(); 
 
-  if (!certificado) return null;
+if (!certificado) return null;
 
-  const getStatusClass = (status: string) => {
+const getStatusClass = (status: string) => {
     switch (status) {
       case "válido":
         return "bg-green-100 text-green-800 border-green-200";
-      case "a_vencer":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        case "a_vencer":
+          return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "expirado":
         return "bg-red-100 text-red-800 border-red-200";
       default:
@@ -62,7 +61,7 @@ const { temPermissao } = usePermissao();
   const fetchSignedUrl = async (path: string) => {
     if (!path) return;
     const { data, error } = await supabase.storage
-      .from('certificados')
+    .from('certificados')
       .createSignedUrl(path, 60);
       
     if (error) {
@@ -77,10 +76,7 @@ const { temPermissao } = usePermissao();
     fetchSignedUrl(certificado.copiadocertificado);
   }
   
-  if (!temPermissao('certificados',"canview")) {
-    return <p>Você não tem permissão para visualizar esta página.</p>;
-  }
-
+  
   return (
     <DialogContent className="max-w-2xl">
       <DialogHeader>
@@ -130,14 +126,14 @@ const { temPermissao } = usePermissao();
         </div>
           {/* Documento (PDF ou imagem) */}
           {signedUrl && (
-          <div className="mt-4">
+            <div className="mt-4">
             <p className="text-sm text-muted-foreground mb-2">Documento Anexado:</p>
             <a
               href={signedUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline text-sm font-medium"
-            >
+              >
               Visualizar documento em anexo
             </a>
           </div>
@@ -159,23 +155,24 @@ const CertificadosList = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [certificadoToDelete, setCertificadoToDelete] = useState<string | null>(null);
-
+  const { temPermissao } = usePermissao(); 
+  
   //Listar Todos os Certificados Cadastrados.
   const fetchCertificados = async () => {
     const { data, error } = await supabase
       .from("tblcertificadoinspeccao")
       .select(`*,
         tblviaturas:viaturaid (viaturamarca, viaturamodelo, viaturamatricula)
-      `);
-
-    if (error) {
-      console.error("Erro ao buscar certificados:", error.message);
-      toast({ title: "Erro", description: "Não foi possível carregar os certificados." });
-      return;
-    }
-    setCertificados(data);
-  };
-
+        `);
+        
+        if (error) {
+          console.error("Erro ao buscar certificados:", error.message);
+          toast({ title: "Erro", description: "Não foi possível carregar os certificados." });
+          return;
+        }
+        setCertificados(data);
+      };
+      
   useEffect(() => {
     fetchCertificados();
   }, [toast]);
@@ -184,7 +181,7 @@ const CertificadosList = () => {
     setCertificadoToDelete(id);
     setShowDeleteDialog(true);
   };
-
+  
   const confirmDelete = async () => {
     if (!certificadoToDelete) {
       toast({
@@ -194,27 +191,27 @@ const CertificadosList = () => {
       });
       return;
     }
-  
+    
     try {
       // 1. Buscar o certificado pelo ID
       const { data: certificado, error: fetchError } = await supabase
-        .from("tblcertificadoinspeccao")
-        .select("copiadocertificado")
-        .eq("id", certificadoToDelete)
-        .single();
-  
+      .from("tblcertificadoinspeccao")
+      .select("copiadocertificado")
+      .eq("id", certificadoToDelete)
+      .single();
+      
       if (fetchError) throw fetchError;
-  
+      
       const caminhoArquivo = certificado?.copiadocertificado;
-  
+      
       // 2. Deletar o certificado do banco
       const { error: deleteError } = await supabase
-        .from("tblcertificadoinspeccao")
-        .delete()
-        .eq("id", certificadoToDelete);
-  
+      .from("tblcertificadoinspeccao")
+      .delete()
+      .eq("id", certificadoToDelete);
+      
       if (deleteError) throw deleteError;
-  
+      
       // 3. Se existir arquivo, deletar do storage
       if (caminhoArquivo) {
         const { error: storageError } = await supabase.storage
@@ -230,7 +227,7 @@ const CertificadosList = () => {
         title: "Certificado excluído",
         description: "O certificado foi excluído com sucesso.",
       });
-  
+      
       setShowDeleteDialog(false);
       setCertificadoToDelete(null);
       fetchCertificados();
@@ -247,7 +244,7 @@ const CertificadosList = () => {
     setSelectedCertificado(certificado);
     setShowDetailsDialog(true);
   };
-
+  
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "válido":
@@ -261,6 +258,10 @@ const CertificadosList = () => {
     }
   };
 
+  if (!temPermissao('certificados',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -268,9 +269,9 @@ const CertificadosList = () => {
           <h2 className="text-3xl font-bold tracking-tight">Certificados de Inspeção</h2>
           <p className="text-muted-foreground">Gerenciamento de certificados de inspeção das viaturas</p>
         </div>
-        <Button onClick={() => navigate("/certificados/add")}>
+        {temPermissao("certificados","caninsert") && (<Button onClick={() => navigate("/certificados/add")}>
           <Plus className="mr-2 h-4 w-4" /> Novo Certificado
-        </Button>
+        </Button>)}
       </div>
 
       <Card>
@@ -308,18 +309,18 @@ const CertificadosList = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => viewDetails(certificado)}>
+                        {temPermissao("certificados","canview") && (<DropdownMenuItem onClick={() => viewDetails(certificado)}>
                           <EyeIcon className="mr-2 h-4 w-4" />
                           Ver detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/certificados/edit/${certificado.id}`)}>
+                        </DropdownMenuItem>)}
+                        {temPermissao("certificados","canedit") && (<DropdownMenuItem onClick={() => navigate(`/certificados/edit/${certificado.id}`)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(certificado.id)} className="text-destructive focus:text-destructive">
+                        </DropdownMenuItem>)}
+                        {temPermissao("certificados","candelete") && (<DropdownMenuItem onClick={() => handleDelete(certificado.id)} className="text-destructive focus:text-destructive">
                           <Trash className="mr-2 h-4 w-4" />
                           Excluir
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>)}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

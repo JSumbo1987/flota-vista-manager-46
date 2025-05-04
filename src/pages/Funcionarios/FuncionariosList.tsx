@@ -270,9 +270,9 @@ const FuncionariosList = () => {
           <h1 className="text-2xl font-bold">Funcionários</h1>
           <p className="text-muted-foreground">Lista de funcionários cadastradas</p>
         </div>
-        <Button onClick={() => navigate("/funcionarios/add")}>
+        {temPermissao("funcionarios","caninsert") && (<Button onClick={() => navigate("/funcionarios/add")}>
           <Plus className="mr-2 h-4 w-4" /> Novo Funcionário
-        </Button>
+        </Button>)}
       </div>
 
       <Card>
@@ -316,19 +316,19 @@ const FuncionariosList = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[160px]">
-                          <DropdownMenuItem onClick={() => viewDetails(f)}>
-                            <EyeIcon className="mr-2 h-4 w-4" />Ver detalhes</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/funcionarios/documentos/${f.funcionarioid}`)}>
-                            <EyeIcon className="mr-2 h-4 w-4" />Ver arquivos</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/funcionarios/edit/${f.funcionarioid}`)}>
-                            <Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/funcionarios/criar-conta/${f.funcionarioid}`)}>
-                            <User2 className="mr-2 h-4 w-4" />Criar conta</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/funcionarios/atribuirviatura/${f.funcionarioid}`)}>
-                            <Car className="mr-2 h-4 w-4" />Atribuir Viatura</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(f.funcionarioid)}
+                          {temPermissao("funcionarios","canview") && (<DropdownMenuItem onClick={() => viewDetails(f)}>
+                            <EyeIcon className="mr-2 h-4 w-4" />Ver detalhes</DropdownMenuItem>)}
+                          {temPermissao("funcionarios","canview") && (<DropdownMenuItem onClick={() => navigate(`/funcionarios/documentos/${f.funcionarioid}`)}>
+                            <EyeIcon className="mr-2 h-4 w-4" />Ver arquivos</DropdownMenuItem>)}
+                          {temPermissao("funcionarios","canedit") && (<DropdownMenuItem onClick={() => navigate(`/funcionarios/edit/${f.funcionarioid}`)}>
+                            <Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>)}
+                          {temPermissao("funcionarios","caninsert") && (<DropdownMenuItem onClick={() => navigate(`/funcionarios/criar-conta/${f.funcionarioid}`)}>
+                            <User2 className="mr-2 h-4 w-4" />Criar conta</DropdownMenuItem>)}
+                          {temPermissao("funcionarios","caninsert") && (<DropdownMenuItem onClick={() => navigate(`/funcionarios/atribuirviatura/${f.funcionarioid}`)}>
+                            <Car className="mr-2 h-4 w-4" />Atribuir Viatura</DropdownMenuItem>)}
+                          {temPermissao("funcionarios","candelete") && (<DropdownMenuItem onClick={() => handleDelete(f.funcionarioid)}
                            className="text-destructive focus:text-destructive">
-                            <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
+                            <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>)}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

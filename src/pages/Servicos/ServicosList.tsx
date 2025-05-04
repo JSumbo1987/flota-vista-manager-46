@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { usePermissao } from "@/hooks/usePermissao";
 
 // Tipos corrigidos para incluir os campos relacionados
 interface Viatura {
@@ -148,12 +149,11 @@ const ServicosList = () => {
 
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [selectedServico, setSelectedServico] = useState<Servico | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-
   const [servicoToDelete, setServicoToDelete] = useState<Servico | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { temPermissao } = usePermissao();
 
   // Buscar dados do Supabase
   const fetchServicos = async () => {
@@ -231,6 +231,10 @@ const ServicosList = () => {
     );
   }
 
+  if (!temPermissao('servicos',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -240,9 +244,9 @@ const ServicosList = () => {
             Lista de serviços realizados nas viaturas
           </p>
         </div>
-        <Button onClick={() => navigate("/servicos/add")}>
+        {temPermissao('servicos','caninsert') && (<Button onClick={() => navigate("/servicos/add")}>
           <Plus className="mr-2 h-4 w-4" /> Novo Serviço
-        </Button>
+        </Button>)}
       </div>
 
       <Card>
@@ -291,23 +295,15 @@ const ServicosList = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => viewDetails(servico)}>
+                          {temPermissao('servicos','canview') && (<DropdownMenuItem onClick={() => viewDetails(servico)}>
                             <EyeIcon className="mr-2 h-4 w-4" />
                             Ver detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => navigate(`/servicos/edit/${servico.id}`)}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(servico)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
+                          </DropdownMenuItem>)}
+                          {temPermissao('servicos','canedit') && (<DropdownMenuItem onClick={() => navigate(`/servicos/edit/${servico.id}`)}>
+                            <Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>)}
+                          {temPermissao('servicos','candelete') && (<DropdownMenuItem onClick={() => handleDelete(servico)}
+                            className="text-destructive focus:text-destructive">
+                            <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>)}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

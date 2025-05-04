@@ -34,6 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { usePermissao } from "@/hooks/usePermissao";
 
 const UsuariosList = () => {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ const UsuariosList = () => {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const { temPermissao } = usePermissao();
 
   // Buscar usuários
   useEffect(() => {
@@ -207,6 +209,10 @@ const UsuariosList = () => {
     }
   };
 
+  if (!temPermissao('usuarios',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -216,9 +222,9 @@ const UsuariosList = () => {
             Gerenciamento dos usuários do sistema
           </p>
         </div>
-        <Button onClick={() => navigate("/usuarios/add")}>
+        {temPermissao('usuarios','canview') && (<Button onClick={() => navigate("/usuarios/add")}>
           <Plus className="mr-2 h-4 w-4" /> Novo Usuário
-        </Button>
+        </Button>)}
       </div>
 
       <Card>
@@ -254,37 +260,25 @@ const UsuariosList = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => viewDetails(user)}>
+                        {temPermissao('usuarios','canview') && (<DropdownMenuItem onClick={() => viewDetails(user)}>
                           <EyeIcon className="mr-2 h-4 w-4" /> Ver detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openChangePass(user)}>
+                        </DropdownMenuItem>)}
+                        {temPermissao('usuarios','canedit') && (<DropdownMenuItem onClick={() => openChangePass(user)}>
                           <Key className="mr-2 h-4 w-4" /> Alterar senha
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => resetPassword(user)}
-                        >
+                        </DropdownMenuItem>)}
+                        {temPermissao('usuarios','canedit') && (<DropdownMenuItem onClick={() => resetPassword(user)}>
                           <Key className="mr-2 h-4 w-4" /> Resetar senha
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            navigate(`/usuarios/edit/${user.userid}`)
-                          }
-                        >
+                        </DropdownMenuItem>)}
+                        {temPermissao('usuarios','canedit') && (<DropdownMenuItem onClick={() => navigate(`/usuarios/edit/${user.userid}`)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            navigate(`/usuarios/permissions/${user.userid}`)
-                          }
-                        >
+                        </DropdownMenuItem>)}
+                        {temPermissao('usuarios','caninsert') && (<DropdownMenuItem onClick={() => navigate(`/usuarios/permissions/${user.userid}`)}>
                           <Badge className="mr-2">Permissões</Badge> Definir
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(user.userid)}
-                          className="text-destructive focus:text-destructive"
-                        >
+                        </DropdownMenuItem>)}
+                        {temPermissao('usuarios','candelete') && (<DropdownMenuItem onClick={() => handleDelete(user.userid)}
+                          className="text-destructive focus:text-destructive">
                           <Trash className="mr-2 h-4 w-4" /> Excluir
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>)}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

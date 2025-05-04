@@ -192,9 +192,9 @@ const LicencaPublicidadeList = () => {
             Gerenciamento das licenças de publicidade das viaturas
           </p>
         </div>
-        <Button onClick={() => navigate("/licencas-publicidade/add")}>
+        {temPermissao("licenca-publicidade","caninsert") && (<Button onClick={() => navigate("/licencas-publicidade/add")}>
           <Plus className="mr-2 h-4 w-4" /> Nova Licença
-        </Button>
+        </Button>)}
       </div>
 
       <Card>
@@ -232,18 +232,18 @@ const LicencaPublicidadeList = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => viewDetails(licenca)}>
+                        {temPermissao("licenca-publicidade","canview") && (<DropdownMenuItem onClick={() => viewDetails(licenca)}>
                           <EyeIcon className="mr-2 h-4 w-4" />
                           Ver detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/licencas-publicidade/edit/${licenca.id}`)}>
+                        </DropdownMenuItem>)}
+                        {temPermissao("licenca-publicidade","canedit") && (<DropdownMenuItem onClick={() => navigate(`/licencas-publicidade/edit/${licenca.id}`)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(licenca.id)} className="text-destructive focus:text-destructive">
+                        </DropdownMenuItem>)}
+                        {temPermissao("licenca-publicidade","candelete") && (<DropdownMenuItem onClick={() => handleDelete(licenca.id)} className="text-destructive focus:text-destructive">
                           <Trash className="mr-2 h-4 w-4" />
                           Excluir
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>)}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

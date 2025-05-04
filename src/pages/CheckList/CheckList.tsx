@@ -271,10 +271,10 @@ const ChecklistsList = () => {
           <h2 className="text-3xl font-bold tracking-tight">Checklists</h2>
           <p className="text-muted-foreground">Listagem de checklists de viaturas</p>
         </div>
-        <Button onClick={() => navigate("/checklist/add")}>
+        {temPermissao("checklist","canview") && (<Button onClick={() => navigate("/checklist/add")}>
           {" "}
           <Plus className="mr-2 h-4 w-4" /> Novo Checklist{" "}
-        </Button>
+        </Button>)}
       </div>
 
       <Card>
@@ -314,18 +314,18 @@ const ChecklistsList = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/checklist/viewDetails/${checklist.id}`)}>
+                        {temPermissao("checklist","canview") && (<DropdownMenuItem onClick={() => navigate(`/checklist/viewDetails/${checklist.id}`)}>
                           <EyeIcon className="mr-2 h-4 w-4" /> Ver detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/checklist/edit/${checklist.id}`)}>
+                        </DropdownMenuItem>)}
+                        {temPermissao("checklist","canedit") && (<DropdownMenuItem onClick={() => navigate(`/checklist/edit/${checklist.id}`)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
+                        </DropdownMenuItem>)}
+                        {temPermissao("checklist","candelete") && (<DropdownMenuItem
                           onClick={() => handleDelete(checklist.id)}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash className="mr-2 h-4 w-4" /> Excluir
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>)}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
