@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -6,28 +5,40 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface TipoUsuario {
-  tipousuarioid: string;
-  descricao: string;
+  tipoid: string;
+  descricaotipo: string;
 }
 
 interface GrupoUsuario {
-  grupousuarioid: string;
-  nome: string;
+  grupoid: string;
+  gruponame: string;
 }
 
 interface Usuario {
   userid: string;
   usernome: string;
   useremail: string;
-  tipousuarioid: string;
-  grupousuarioid: string;
+  tipoid: string;
+  grupoid: string;
   issuperusuario: boolean;
   estado: string;
   useremailconfirmed: boolean;
@@ -49,31 +60,36 @@ const EditUsuario = () => {
   useEffect(() => {
     async function fetchData() {
       if (!id) return;
-      
+
       try {
         setIsLoading(true);
         const [usuarioResponse, tiposResponse, gruposResponse] = await Promise.all([
           supabase.from("tblusuarios").select("*").eq("userid", id).single(),
           supabase.from("tbltipousuarios").select("*"),
-          supabase.from("tblgrupousuarios").select("*")
+          supabase.from("tblgrupousuarios").select("*"),
         ]);
 
         if (usuarioResponse.error || !usuarioResponse.data) {
           throw new Error(usuarioResponse.error?.message || "Usuário não encontrado");
         }
 
-        setForm(usuarioResponse.data);
+        setForm({
+          ...usuarioResponse.data,
+          tipoid: usuarioResponse.data.tipoid,
+          grupoid: usuarioResponse.data.grupoid,
+          estado: usuarioResponse.data.estado ?? "activo",
+        });
         setTiposUsuario(tiposResponse.data || []);
         setGruposUsuario(gruposResponse.data || []);
 
-        // Verificar se existe outro superusuário além deste
+        // Verifica se há outro superusuário
         if (usuarioResponse.data.issuperusuario) {
           const { count } = await supabase
             .from("tblusuarios")
             .select("*", { count: "exact", head: true })
             .eq("issuperusuario", true)
             .neq("userid", id);
-          
+
           setAnyOtherSuperUser((count || 0) > 0);
         }
       } catch (error) {
@@ -110,13 +126,12 @@ const EditUsuario = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form || !id) return;
-    
+
     setIsSubmitting(true);
 
     try {
       const email = form.useremail.trim().toLowerCase();
 
-      // Verificar se o e-mail já está em uso (exceto pelo próprio usuário)
       const [usuarioResponse, funcionarioResponse] = await Promise.all([
         supabase
           .from("tblusuarios")
@@ -130,10 +145,10 @@ const EditUsuario = () => {
       ]);
 
       if ((usuarioResponse.count || 0) > 0 || (funcionarioResponse.count || 0) > 0) {
-        toast({ 
-          title: "Ops", 
-          description: "O e-mail informado já existe cadastrado no sistema!", 
-          variant: "destructive" 
+        toast({
+          title: "Ops",
+          description: "O e-mail informado já existe cadastrado no sistema!",
+          variant: "destructive",
         });
         return;
       }
@@ -143,8 +158,8 @@ const EditUsuario = () => {
         .update({
           usernome: form.usernome,
           useremail: email,
-          tipousuarioid: form.tipousuarioid,
-          grupousuarioid: form.grupousuarioid,
+          tipoid: form.tipoid,
+          grupoid: form.grupoid,
           estado: form.estado,
           issuperusuario: form.issuperusuario,
         })
@@ -156,10 +171,10 @@ const EditUsuario = () => {
       navigate("/usuarios");
     } catch (err) {
       console.error(err);
-      toast({ 
-        title: "Erro ao atualizar usuário", 
-        description: String(err), 
-        variant: "destructive" 
+      toast({
+        title: "Erro ao atualizar usuário",
+        description: String(err),
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -224,36 +239,36 @@ const EditUsuario = () => {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="usernome">Nome*</Label>
-              <Input 
+              <Input
                 id="usernome"
-                value={form.usernome} 
-                onChange={(e) => handleInputChange("usernome", e.target.value)} 
-                required 
+                value={form.usernome}
+                onChange={(e) => handleInputChange("usernome", e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="useremail">Email*</Label>
-              <Input 
+              <Input
                 id="useremail"
-                type="email" 
-                value={form.useremail} 
-                onChange={(e) => handleInputChange("useremail", e.target.value)} 
-                required 
+                type="email"
+                value={form.useremail}
+                onChange={(e) => handleInputChange("useremail", e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tipousuarioid">Tipo de Usuário*</Label>
-              <Select 
-                value={form.tipousuarioid} 
-                onValueChange={(value) => handleSelectChange("tipousuarioid", value)}
+              <Select
+                value={form.tipoid}
+                onValueChange={(value) => handleSelectChange("tipoid", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
                   {tiposUsuario.map((tipo) => (
-                    <SelectItem key={tipo.tipousuarioid} value={tipo.tipousuarioid}>
-                      {tipo.descricao}
+                    <SelectItem key={tipo.tipoid} value={tipo.tipoid}>
+                      {tipo.descricaotipo}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -261,26 +276,26 @@ const EditUsuario = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="grupousuarioid">Grupo de Usuário*</Label>
-              <Select 
-                value={form.grupousuarioid} 
-                onValueChange={(value) => handleSelectChange("grupousuarioid", value)}
+              <Select
+                value={form.grupoid}
+                onValueChange={(value) => handleSelectChange("grupoid", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
                   {gruposUsuario.map((grupo) => (
-                    <SelectItem key={grupo.grupousuarioid} value={grupo.grupousuarioid}>
-                      {grupo.nome}
+                    <SelectItem key={grupo.grupoid} value={grupo.grupoid}>
+                      {grupo.gruponame}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="estado">Status</Label>
-              <Select 
-                value={form.estado} 
+              <Label htmlFor="estado">Estado</Label>
+              <Select
+                value={form.estado}
                 onValueChange={(value) => handleSelectChange("estado", value)}
               >
                 <SelectTrigger>
@@ -294,7 +309,7 @@ const EditUsuario = () => {
               </Select>
             </div>
             <div className="col-span-2 flex items-center space-x-2">
-              <Switch 
+              <Switch
                 id="issuperusuario"
                 checked={form.issuperusuario}
                 onCheckedChange={handleSwitchChange}
@@ -302,7 +317,9 @@ const EditUsuario = () => {
               />
               <Label htmlFor="issuperusuario">Super Usuário</Label>
               {form.issuperusuario && !anyOtherSuperUser && (
-                <span className="text-sm text-muted-foreground ml-2">(Este é o único Super Usuário)</span>
+                <span className="text-sm text-muted-foreground ml-2">
+                  (Este é o único Super Usuário)
+                </span>
               )}
             </div>
           </CardContent>
@@ -321,3 +338,7 @@ const EditUsuario = () => {
 };
 
 export default EditUsuario;
+
+
+
+

@@ -69,13 +69,13 @@ const EditServico = () => {
     const fetchServico = async () => {
       const { data, error } = await supabase.from("tblservicos").select("*").eq("id", id).single();
       if (data) {
-        setViaturaId(String(data.viaturaid));
-        setCategoriaId(String(data.categoriaid));
-        setTipoId(String(data.tipoid));
-        setPrestadorId(String(data.prestadorid));
+        setViaturaId(data.viaturaid ? String(data.viaturaid) : "");
+        setCategoriaId(data.categoriaid ? String(data.categoriaid) : "");
+        setTipoId(data.tipoid ? String(data.tipoid) : "");
+        setPrestadorId(data.prestadorid ? String(data.prestadorid) : "");
         setDataServico(data.dataservico ? new Date(data.dataservico) : undefined);
-        setCusto(String(data.custo));
-        setObservacoes(data.observacoes);
+        setCusto(data.custo ? String(data.custo) : "");
+        setObservacoes(data.observacoes || "");
       } else {
         toast({
           title: "Erro ao carregar serviço",
@@ -127,6 +127,10 @@ const EditServico = () => {
       navigate("/servicos");
     }
   };
+
+  if (!viaturas.length || !categorias.length || !tipos.length || !prestadores.length) {
+    return <p className="text-center py-10">Carregando dados...</p>;
+  }
 
   return (
     <div className="space-y-4">
