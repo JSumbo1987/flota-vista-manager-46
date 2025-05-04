@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { usePermissao } from "@/hooks/usePermissao";
 interface Certificado {
   id: string;
   numerocertificado: string;
@@ -41,6 +42,7 @@ interface CertificadoDetailsProps {
 
 const CertificadoDetails = ({ certificado, onClose }: CertificadoDetailsProps) => {
 const [signedUrl, setSignedUrl] = useState<string | null>(null);
+const { temPermissao } = usePermissao(); 
 
   if (!certificado) return null;
 
@@ -75,6 +77,10 @@ const [signedUrl, setSignedUrl] = useState<string | null>(null);
     fetchSignedUrl(certificado.copiadocertificado);
   }
   
+  if (!temPermissao('certificados',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
+
   return (
     <DialogContent className="max-w-2xl">
       <DialogHeader>

@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MenuPermission } from "../models/permission.types";
 import PermissionSelector from "./permissions/PermissionSelector";
 import PermissionsTable from "./permissions/PermissionsTable";
+import {useSalvarPermissoes} from '@/hooks/useSalvarPermissoes';
 
 const PermissionsTab = () => {
   const { toast } = useToast();
@@ -13,6 +14,7 @@ const PermissionsTab = () => {
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const { salvarPermissoes } = useSalvarPermissoes();
 
   // Menu permissions state
   const [menuPermissions, setMenuPermissions] = useState<MenuPermission[]>([
@@ -40,16 +42,25 @@ const PermissionsTab = () => {
     );
   };
 
+
   const handleSavePermissions = async () => {
+    if (!selectedGroup) {
+      toast({
+        title: "Grupo não selecionado",
+        description: "Selecione um grupo para salvar as permissões.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSaving(true);
-    
+
     try {
-      // Aqui iríamos salvar as configurações de permissões no banco de dados
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await salvarPermissoes(selectedGroup, menuPermissions);
+
       toast({
         title: "Permissões salvas",
-        description: `As permissões para ${selectedPermissionType === 'users' ? 'o usuário' : 'o grupo'} foram atualizadas com sucesso.`
+        description: `As permissões para o grupo foram atualizadas com sucesso.`,
       });
     } catch (error) {
       toast({

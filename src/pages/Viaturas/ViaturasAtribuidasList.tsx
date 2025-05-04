@@ -23,8 +23,10 @@ import {
 import { ChevronDown, EyeIcon, Edit, Trash, Car, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissao } from "@/hooks/usePermissao";
 
 const ListaViaturasAtribuidas = () => {
+  const { temPermissao } = usePermissao();  
   const [viaturasAtribuidas, setViaturasAtribuidas] = useState<any[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [atribuicaoToDelete, setAtribuicaoToDelete] = useState<number | null>(null);
@@ -140,9 +142,9 @@ const ListaViaturasAtribuidas = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleDelete(item.tblviaturas?.viaturaid)}
+                      {temPermissao("viaturas","candelete") && (<DropdownMenuItem onClick={() => handleDelete(item.tblviaturas?.viaturaid)}
                         className="text-destructive focus:text-destructive">
-                        <Trash className="mr-2 h-4 w-4" />Remover</DropdownMenuItem>
+                        <Trash className="mr-2 h-4 w-4" />Remover</DropdownMenuItem>)}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

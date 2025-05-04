@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { usePermissao } from "@/hooks/usePermissao";
 
 interface Funcionario {
   funcionarioid: number;
@@ -132,6 +133,7 @@ const FuncionariosList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [funcionarioToDelete, setFuncionarioToDelete] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+   const { temPermissao } = usePermissao(); 
 
   useEffect(() => {
     const fetchFuncionarios = async () => {
@@ -256,6 +258,10 @@ const FuncionariosList = () => {
         return <Badge variant="outline">{estado}</Badge>;
     }
   };
+
+  if (!temPermissao('funcionarios',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
 
   return (
     <div className="space-y-4">

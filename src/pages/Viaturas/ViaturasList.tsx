@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "../Auth/AuthContext";
+import { usePermissao } from "@/hooks/usePermissao";
 
 const ViaturaDetails = ({viatura, onClose }: { viatura: any; onClose: () => void; }) => {
   if (!viatura) return null;
@@ -83,6 +85,7 @@ const ViaturasList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [viaturaToDelete, setViaturaToDelete] = useState<number | null>(null);
+  const { temPermissao } = usePermissao();  
 
   useEffect(() => {
     const fetchViaturas = async () => {
@@ -134,6 +137,10 @@ const ViaturasList = () => {
     setShowDetailsDialog(true);
   };
 
+  if (!temPermissao('viaturas',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -142,15 +149,15 @@ const ViaturasList = () => {
           <p className="text-muted-foreground">Lista de viaturas cadastradas</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/viaturas/viaturasatribuidas")}>
+          {temPermissao("viaturas","canview") && (<Button variant="outline" onClick={() => navigate("/viaturas/viaturasatribuidas")}>
             <Car className="mr-2 h-4 w-4" /> Listar Viatura Atribuidas
-          </Button>
+          </Button>)}
           <Button variant="destructive" onClick={() => navigate("/viaturas/abastecer/add")}>
             <Fuel className="mr-2 h-4 w-4" /> Novo Abastecimento
           </Button>
-          <Button onClick={() => navigate("/viaturas/add")}>
+          {temPermissao('viaturas',"caninsert") && (<Button onClick={() => navigate("/viaturas/add")}>
             <Plus className="mr-2 h-4 w-4" /> Nova Viatura
-          </Button>
+          </Button>)}
         </div>
       </div>
 
@@ -189,16 +196,16 @@ const ViaturasList = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => viewDetails(viatura)}>
-                          <EyeIcon className="mr-2 h-4 w-4" />Ver detalhes</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/viaturas/edit/${viatura.viaturaid}`)}>
-                          <Edit className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
-                        <DropdownMenuItem
+                        {temPermissao("viaturas","canview") && (<DropdownMenuItem onClick={() => viewDetails(viatura)}>
+                          <EyeIcon className="mr-2 h-4 w-4" />Ver detalhes</DropdownMenuItem>)}
+                        {temPermissao("viaturas","canedit") && (<DropdownMenuItem onClick={() => navigate(`/viaturas/edit/${viatura.viaturaid}`)}>
+                          <Edit className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>)}
+                        {temPermissao("viaturas","candelete") && (<DropdownMenuItem
                           onClick={() => handleDelete(viatura.viaturaid)}
                           className="text-destructive focus:text-destructive">
-                            <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/viaturas/abastecer/detalhe/${viatura.viaturaid}`)}>
-                          <Fuel className="mr-2 h-4 w-4" />Detalhe Abastecimento</DropdownMenuItem>
+                            <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>)}
+                          {temPermissao("viaturas","canview") && (<DropdownMenuItem onClick={() => navigate(`/viaturas/abastecer/detalhe/${viatura.viaturaid}`)}>
+                          <Fuel className="mr-2 h-4 w-4" />Detalhe Abastecimento</DropdownMenuItem>)}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

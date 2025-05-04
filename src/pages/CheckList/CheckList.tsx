@@ -34,6 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { usePermissao } from "@/hooks/usePermissao";
 
 interface Checklist {
   id: number;
@@ -192,6 +193,7 @@ const ChecklistsList = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [checklistToDelete, setChecklistToDelete] = useState<number | null>(null);
+  const { temPermissao } = usePermissao(); 
 
   const fetchChecklists = async () => {
     const { data, error } = await supabase
@@ -257,6 +259,10 @@ const ChecklistsList = () => {
         return <Badge variant="outline">{estado}</Badge>;
     }
   };
+
+  if (!temPermissao('checklist',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
 
   return (
     <div className="space-y-4">

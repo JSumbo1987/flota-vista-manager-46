@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -10,15 +9,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { gerarHashSenha } from "@/hooks/GerarHashSenha";
+import { useSenhaValidator } from "@/hooks/useSenhaValidator";
 
 interface TipoUsuario {
-  tipousuarioid: string;
-  descricao: string;
+  tipoid: string;
+  descricaotipo: string;
 }
 
 interface GrupoUsuario {
-  grupousuarioid: string;
-  nome: string;
+  grupoid: string;
+  gruponame: string;
 }
 
 const AddUsuario = () => {
@@ -29,8 +30,8 @@ const AddUsuario = () => {
     usernome: "",
     useremail: "",
     userpassword: "",
-    tipousuarioid: "",
-    grupousuarioid: "",
+    tipoid: "",
+    grupoid: "",
     issuperusuario: false,
   });
 
@@ -38,6 +39,7 @@ const AddUsuario = () => {
   const [gruposUsuario, setGruposUsuario] = useState<GrupoUsuario[]>([]);
   const [superUsuarioExiste, setSuperUsuarioExiste] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { erro: senhaErro, validar: validarSenha } = useSenhaValidator();
 
   useEffect(() => {
     async function fetchData() {
@@ -48,8 +50,16 @@ const AddUsuario = () => {
           supabase.from("tblusuarios").select("*", { count: "exact", head: true }).eq("issuperusuario", true)
         ]);
 
-        setTiposUsuario(tiposResponse.data || []);
-        setGruposUsuario(gruposResponse.data || []);
+        setTiposUsuario((tiposResponse.data || []).map((item) => ({
+          ...item,
+          tipoid: String(item.tipoid),
+        })));
+        
+        setGruposUsuario((gruposResponse.data || []).map((item) => ({
+          ...item,
+          grupoid: String(item.grupoid),
+        })));
+        
         setSuperUsuarioExiste((superResponse.count || 0) > 0);
       } catch (error) {
         console.error("Erro ao carregar dados iniciais:", error);
@@ -67,7 +77,10 @@ const AddUsuario = () => {
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  
+    if (name === "userpassword") { validarSenha(value); }
   };
+  
 
   const handleSelectChange = (name: string, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -99,12 +112,13 @@ const AddUsuario = () => {
         return;
       }
 
+      const senhaHash = await gerarHashSenha(form.userpassword);
       const { error } = await supabase.from("tblusuarios").insert({
         usernome: form.usernome,
-        useremail: email,
-        userpassword: form.userpassword,
-        tipousuarioid: form.tipousuarioid,
-        grupousuarioid: form.grupousuarioid,
+        useremail: form.useremail,
+        userpassword: senhaHash.trim(),
+        tipousuarioid: form.tipoid,
+        grupousuarioid: form.grupoid,
         estado: "activo",
         useremailconfirmed: false,
         isfastlogin: 0,
@@ -114,6 +128,8 @@ const AddUsuario = () => {
       if (error) throw error;
 
       toast({ title: "Usuário cadastrado com sucesso!" });
+      //Enviar email para confirmar o e-mail do Usuário.
+
       navigate("/usuarios");
     } catch (err) {
       console.error(err);
@@ -146,7 +162,7 @@ const AddUsuario = () => {
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="usernome">Nome*</Label>
+              <Label htmlFor="usernome">Nome Completo*</Label>
               <Input 
                 id="usernome"
                 name="usernome" 
@@ -176,20 +192,21 @@ const AddUsuario = () => {
                 onChange={handleInputChange} 
                 required 
               />
+              {senhaErro && ( <p className="text-sm text-red-500">{senhaErro}</p> )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="tipousuarioid">Tipo de Usuário*</Label>
               <Select 
-                value={form.tipousuarioid} 
-                onValueChange={(value) => handleSelectChange("tipousuarioid", value)}
+                value={form.tipoid} 
+                onValueChange={(value) => handleSelectChange("tipoid", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
                   {tiposUsuario.map((tipo) => (
-                    <SelectItem key={tipo.tipousuarioid} value={tipo.tipousuarioid}>
-                      {tipo.descricao}
+                    <SelectItem key={tipo.tipoid} value={tipo.tipoid}>
+                      {tipo.descricaotipo}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -198,16 +215,16 @@ const AddUsuario = () => {
             <div className="space-y-2">
               <Label htmlFor="grupousuarioid">Grupo de Usuário*</Label>
               <Select 
-                value={form.grupousuarioid} 
-                onValueChange={(value) => handleSelectChange("grupousuarioid", value)}
+                value={form.grupoid} 
+                onValueChange={(value) => handleSelectChange("grupoid", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
                   {gruposUsuario.map((grupo) => (
-                    <SelectItem key={grupo.grupousuarioid} value={grupo.grupousuarioid}>
-                      {grupo.nome}
+                    <SelectItem key={grupo.grupoid} value={grupo.grupoid}>
+                      {grupo.gruponame}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -239,3 +256,5 @@ const AddUsuario = () => {
 };
 
 export default AddUsuario;
+
+

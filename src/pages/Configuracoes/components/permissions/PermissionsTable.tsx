@@ -3,12 +3,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { MenuPermission } from "@/pages/Configuracoes/models/permission.types";
 
+
 interface PermissionsTableProps {
   menuPermissions: MenuPermission[];
   onPermissionChange: (menuId: string, permission: 'canInsert' | 'canEdit' | 'canDelete' | 'canView' | 'canTodos', value: boolean) => void;
 }
 
 const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTableProps) => {
+
+  
   return (
     <div className="rounded-md border">
       <Table>

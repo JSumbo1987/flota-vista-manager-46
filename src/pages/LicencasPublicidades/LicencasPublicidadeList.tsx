@@ -34,6 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { usePermissao } from "@/hooks/usePermissao";
 
 const LicencaPublicidadeList = () => {
   const navigate = useNavigate();
@@ -44,6 +45,7 @@ const LicencaPublicidadeList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [licencaToDelete, setLicencaToDelete] = useState(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const { temPermissao } = usePermissao(); 
 
   useEffect(() => {
     const fetchLicencas = async () => {
@@ -176,6 +178,10 @@ const LicencaPublicidadeList = () => {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  if (!temPermissao('licenca-publicidade',"canview")) {
+    return <p>Você não tem permissão para visualizar esta página.</p>;
+  }
 
   return (
     <div className="space-y-4">
