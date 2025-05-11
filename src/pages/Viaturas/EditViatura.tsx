@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import TipoModal from "@/components/CategoriaTipoViatura/TipoModal";
+import CategoriaModal from "@/components/CategoriaTipoViatura/CategoriaModal";
 
-const combustiveis = ["Gasolina", "Gasóleo", "Elétrico", "Híbrido"];
+const combustiveis = ["GASOLINA", "GASÓLEO", "ELÉTRICO", "HÍBRIDO"];
 
 const EditViatura = () => {
   const { viaturaId } = useParams();
@@ -40,20 +42,12 @@ const EditViatura = () => {
   const [quilometragem, setQuilometragem] = useState("");
   const [viaturaTipoId, setTipoId] = useState("");
   const [viaturaCategoriaId, setCategoriaId] = useState("");
-
+  const [showCategoriaModal, setShowCategoriaModal] = useState(false);
+  const [showTipoModal, setShowTipoModal] = useState(false);
   const [tipos, setTipos] = useState<{ id: number; viaturatipo: string }[]>([]);
   const [categorias, setCategorias] = useState<{ id: number; viaturacategoria: string }[]>([]);
 
   useEffect(() => {
-    const fetchTiposECategorias = async () => {
-      const [{ data: tiposData }, { data: categoriasData }] = await Promise.all([
-        supabase.from("tblviaturatipo").select("id, viaturatipo"),
-        supabase.from("tblviaturacategoria").select("id, viaturacategoria"),
-      ]);
-      if (tiposData) setTipos(tiposData);
-      if (categoriasData) setCategorias(categoriasData);
-    };
-
     fetchTiposECategorias();
   }, []);
 
@@ -65,7 +59,7 @@ const EditViatura = () => {
         .select("*")
         .eq("viaturaid", viaturaId)
         .single();
-
+console.log(data);
       if (error) {
         toast({
           title: "Erro ao carregar registo da viatura",
@@ -82,7 +76,7 @@ const EditViatura = () => {
         setAnoFabrica(data.viaturaanofabrica || "");
         setCombustivel(data.viaturacombustivel || "");
         setCor(data.viaturacor || "");
-        setQuilometragem(String(data.quilometragem || ""));
+        setQuilometragem(data.quilometragem);
         setTipoId(String(data.viaturatipoid));
         setCategoriaId(String(data.viaturacategoriaid));
       }
@@ -92,6 +86,15 @@ const EditViatura = () => {
 
     fetchViatura();
   }, [viaturaId]);
+
+  const fetchTiposECategorias = async () => {
+    const [{ data: tiposData }, { data: categoriasData }] = await Promise.all([
+      supabase.from("tblviaturatipo").select("id, viaturatipo"),
+      supabase.from("tblviaturacategoria").select("id, viaturacategoria"),
+    ]);
+    if (tiposData) setTipos(tiposData);
+    if (categoriasData) setCategorias(categoriasData);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,22 +194,29 @@ const EditViatura = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputGroup label="Matrícula*" value={viaturaMatricula} onChange={setMatricula} placeholder="Ex: ABC-123" />
-              <InputGroup label="Marca*" value={viaturaMarca} onChange={setMarca} placeholder="Ex: Toyota" />
-              <InputGroup label="Modelo*" value={viaturaModelo} onChange={setModelo} placeholder="Ex: Corolla" />
-              <InputGroup label="Ano de Fabricação*" value={viaturaAnoFabrica} onChange={setAnoFabrica} placeholder="Ex: 2019" />
-              <InputGroup label="Cor*" value={viaturaCor} onChange={setCor} placeholder="Ex: Prata" />
-              <InputGroup
-                label="Odômetro (km)*"
-                value={quilometragem}
-                onChange={setQuilometragem}
-                placeholder="Ex: 123456.78"
-                type="number"
-                step="0.01"
-              />
-
+              <InputGroup label="Matrícula da viatura*" value={viaturaMatricula} onChange={setMatricula} placeholder="Ex: ABC-123" numeroMaximo={12}/>
+              <InputGroup label="Marca*" value={viaturaMarca} onChange={setMarca} placeholder="Ex: Toyota" numeroMaximo={20}/>
+              <div className="grid grid-rows-1 md:grid-cols-2 gap-4">
+                <div className="col-span-2 flex gap-4">
+                  <InputGroup label="Modelo*" value={viaturaModelo} onChange={setModelo} placeholder="Ex: Corolla" numeroMaximo={15}/>
+                  <InputGroup label="Cor*" value={viaturaCor} onChange={setCor} placeholder="Ex: Prata" numeroMaximo={10}/>
+                </div>
+              
+              <div className="col-span-2 flex gap-4">
+                <InputGroup label="Ano de Fabricação*" value={viaturaAnoFabrica} onChange={setAnoFabrica} placeholder="Ex: 2019" numeroMaximo={4} />
+                <InputGroup
+                  label="Odômetro (km)*"
+                  value={quilometragem}
+                  onChange={setQuilometragem}
+                  placeholder="Ex: 123456.78"
+                  type="number"
+                  step="0.01"
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
               <SelectGroup
-                label="Tipo*"
+                label="Tipo de Viatura*"
                 value={viaturaTipoId}
                 onChange={setTipoId}
                 options={tipos}
@@ -215,13 +225,14 @@ const EditViatura = () => {
               />
 
               <SelectGroup
-                label="Categoria*"
+                label="Categoria de Viatura*"
                 value={viaturaCategoriaId}
                 onChange={setCategoriaId}
                 options={categorias}
                 loading={!categorias.length}
                 optionLabel="viaturacategoria"
               />
+            </div>
 
               <SelectGroup
                 label="Combustível*"
@@ -243,20 +254,32 @@ const EditViatura = () => {
           </CardFooter>
         </form>
       </Card>
+      {/*Tipo e Categoria de Viaturas*/}
+      <TipoModal
+        open={showTipoModal}
+        onClose={() => setShowTipoModal(false)}
+        onSave={fetchTiposECategorias}
+      />
+      <CategoriaModal
+        open={showCategoriaModal}
+        onClose={() => setShowCategoriaModal(false)}
+        onSave={fetchTiposECategorias}
+      />
     </div>
   );
 };
 
-const InputGroup = ({ label, value, onChange, ...props }: any) => (
-  <div className="space-y-2">
+const InputGroup = ({ label, value, onChange, numeroMaximo, ...props }: any) => (
+  <div className="flex-1 space-y-2">
     <Label>{label}</Label>
-    <Input value={value} onChange={(e) => onChange(e.target.value)} {...props} />
+    <Input value={value} onChange={(e) => onChange(e.target.value.toUpperCase())} {...props} maxLength={numeroMaximo}/>
   </div>
 );
 
 const SelectGroup = ({ label, value, onChange, options, loading, optionLabel = "label" }: any) => (
   <div className="space-y-2">
     <Label>{label}</Label>
+    <div className="flex items-center gap-2">
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger>
         <SelectValue placeholder={loading ? "Carregando..." : `Selecione ${label.toLowerCase()}`} />
@@ -269,6 +292,7 @@ const SelectGroup = ({ label, value, onChange, options, loading, optionLabel = "
         ))}
       </SelectContent>
     </Select>
+    </div>
   </div>
 );
 

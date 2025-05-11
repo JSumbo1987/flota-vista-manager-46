@@ -19,17 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import TipoModal from "@/components/CategoriaTipoViatura/TipoModal";
+import CategoriaModal from "@/components/CategoriaTipoViatura/CategoriaModal";
 
 const combustiveis = ["Gasolina", "Gasóleo", "Elétrico", "Híbrido"];
 
@@ -49,17 +42,19 @@ const AddViatura = () => {
   const [viaturaCategoriaId, setCategoriaId] = useState("");
   const [tipos, setTipos] = useState<{ id: number; viaturatipo: string }[]>([]);
   const [categorias, setCategorias] = useState<{ id: number; viaturacategoria: string }[]>([]);
+  const [showTipoModal, setShowTipoModal] = useState(false);
+  const [showCategoriaModal, setShowCategoriaModal] = useState(false);
 
   useEffect(() => {
-    const fetchTiposECategorias = async () => {
-      const { data: tiposData } = await supabase.from("tblviaturatipo").select("id, viaturatipo");
-      const { data: categoriasData } = await supabase.from("tblviaturacategoria").select("id, viaturacategoria");
-      if (tiposData) setTipos(tiposData);
-      if (categoriasData) setCategorias(categoriasData);
-    };
-
     fetchTiposECategorias();
   }, []);
+
+  const fetchTiposECategorias = async () => {
+    const { data: tiposData } = await supabase.from("tblviaturatipo").select("id, viaturatipo");
+    const { data: categoriasData } = await supabase.from("tblviaturacategoria").select("id, viaturacategoria");
+    if (tiposData) setTipos(tiposData);
+    if (categoriasData) setCategorias(categoriasData);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,71 +132,85 @@ const AddViatura = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Matrícula*</Label>
-                <Input value={viaturaMatricula} onChange={(e) => setMatricula(e.target.value)} required />
+                <Label>Matrícula da viatura*</Label>
+                <Input value={viaturaMatricula} onChange={(e) => setMatricula(e.target.value.toUpperCase())} required maxLength={12}/>
               </div>
 
               <div className="space-y-2">
                 <Label>Marca*</Label>
-                <Input value={viaturaMarca} onChange={(e) => setMarca(e.target.value)} required />
+                <Input value={viaturaMarca} onChange={(e) => setMarca(e.target.value.toUpperCase())} required maxLength={20}/>
               </div>
 
-              <div className="space-y-2">
-                <Label>Modelo*</Label>
-                <Input value={viaturaModelo} onChange={(e) => setModelo(e.target.value)} required />
+              <div className="grid grid-rows-1 md:grid-cols-2 gap-4">
+                <div className="col-span-2 flex gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Label>Modelo*</Label>
+                    <Input value={viaturaModelo} onChange={(e) => setModelo(e.target.value.toUpperCase())} required maxLength={15}/>
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <Label>Cor*</Label>
+                    <Input value={viaturaCor} onChange={(e) => setCor(e.target.value.toUpperCase())} required maxLength={10}/>
+                  </div>
+                </div>
+
+                <div className="col-span-2 flex gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Label>Ano de Fabricação*</Label>
+                    <Input value={viaturaAnoFabrica} onChange={(e) => setAnoFabrica(e.target.value)} required maxLength={4}/>
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <Label>Odômetro (km)*</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={quilometragem}
+                      onChange={(e) => setQuilometragem(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Ano de Fabricação*</Label>
-                <Input value={viaturaAnoFabrica} onChange={(e) => setAnoFabrica(e.target.value)} required />
-              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Tipo de Viatura*</Label>
+                  <div className="flex items-center gap-2">
+                    <Select value={viaturaTipoId} onValueChange={setTipoId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tipos.map((t) => (
+                          <SelectItem key={t.id} value={String(t.id)}>
+                            {t.viaturatipo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" onClick={() => setShowTipoModal(true)}>+</Button>
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Cor*</Label>
-                <Input value={viaturaCor} onChange={(e) => setCor(e.target.value)} required />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Odômetro (km)*</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={quilometragem}
-                  onChange={(e) => setQuilometragem(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tipo*</Label>
-                <Select value={viaturaTipoId} onValueChange={setTipoId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tipos.map((t) => (
-                      <SelectItem key={t.id} value={String(t.id)}>
-                        {t.viaturatipo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Categoria*</Label>
-                <Select value={viaturaCategoriaId} onValueChange={setCategoriaId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categorias.map((c) => (
-                      <SelectItem key={c.id} value={String(c.id)}>
-                        {c.viaturacategoria}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label>Categoria da Viatura*</Label>
+                  <div className="flex items-center gap-2">
+                    <Select value={viaturaCategoriaId} onValueChange={setCategoriaId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categorias.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.viaturacategoria}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" onClick={() => setShowCategoriaModal(true)}>+</Button>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -231,6 +240,17 @@ const AddViatura = () => {
           </CardFooter>
         </form>
       </Card>
+      {/*Tipo e Categoria de Viaturas*/}
+      <TipoModal
+        open={showTipoModal}
+        onClose={() => setShowTipoModal(false)}
+        onSave={fetchTiposECategorias}
+      />
+      <CategoriaModal
+        open={showCategoriaModal}
+        onClose={() => setShowCategoriaModal(false)}
+        onSave={fetchTiposECategorias}
+      />
     </div>
   );
 };

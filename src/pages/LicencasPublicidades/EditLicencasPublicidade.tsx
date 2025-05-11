@@ -1,7 +1,7 @@
 // EditLicencaPublicidade.tsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Calendar } from "lucide-react";
+import { ChevronLeft, Calendar, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -31,6 +24,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { useSanitizedUpload } from "@/hooks/useSanitizedUpload";
 
 const EditLicencaPublicidade = () => {
   const { id } = useParams();
@@ -52,6 +46,9 @@ const EditLicencaPublicidade = () => {
   const [arquivoExistente, setArquivoExistente] = useState("");
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [custoLicenca, setCustoLicenca] = useState("");
+  const [matriculaInput, setMatriculaInput] = useState("");
+  const [viaturaEncontrada, setViaturaEncontrada] = useState(false);
+  const { replaceFile } = useSanitizedUpload();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,6 +87,32 @@ const EditLicencaPublicidade = () => {
     };
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (!viaturas.length || !viaturaId) return;
+    const encontrada = viaturas.find(
+      (v) => v.viaturaid === viaturaId
+    );
+    if (encontrada) {
+      setMatriculaInput(encontrada.viaturamatricula);
+      setViaturaEncontrada(true);
+    }
+  }, [viaturas, viaturaId]);
+  
+
+  const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.toUpperCase();
+    setMatriculaInput(input);
+  
+    const encontrada = viaturas.find(v => v.viaturamatricula.toUpperCase() === input);
+    if (encontrada) {
+      setViaturaEncontrada(true);
+      setViaturaId(encontrada.viaturaid);
+    } else {
+      setViaturaEncontrada(false);
+      setViaturaId("");
+    }
+  };
 
   const fetchSignedUrl = async (path: string) => {
     if (!path) return;
@@ -130,24 +153,20 @@ const EditLicencaPublicidade = () => {
         const diasParaVencer = diffEmMilissegundos / (1000 * 60 * 60 * 24);
         
         if (dataVencimento < hoje) {
-            return "expirado";
+            return "vencido";
         } else if (diasParaVencer <= 30) {
             return "a_vencer";
         } else {
             return "válido";
         }
       };
-      const novoStatus = calcularStatusLicenca(new Date(fimFormatado));
 
       let filePath = arquivoExistente;
-
       if (arquivo) {
-        const ext = arquivo.name.split(".").pop();
-        filePath = `licencas-publicidade/${licencaNumero}-${Date.now()}.${ext}`;
-        await supabase.storage.from("licencas-publicidade").upload(filePath, arquivo, {
-          upsert: true,
-        });
-      }
+        filePath = await replaceFile(arquivo, filePath, "licencas-publicidade");  
+      } 
+
+      const novoStatus = calcularStatusLicenca(new Date(fimFormatado));
 
       const { error } = await supabase
         .from("tbllicencapublicidade")
@@ -195,7 +214,7 @@ const EditLicencaPublicidade = () => {
         </Button>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
-            Editar Licença
+            Editar Licença de Publicidade
           </h2>
           <p className="text-muted-foreground">
             Atualize os dados da licença de publicidade
@@ -222,19 +241,20 @@ const EditLicencaPublicidade = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="viatura">Viatura*</Label>
-                <Select value={viaturaId} onValueChange={setViaturaId}>
-                  <SelectTrigger id="viatura">
-                    <SelectValue placeholder="Selecione uma viatura" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {viaturas.map((v) => (
-                      <SelectItem key={v.viaturaid} value={v.viaturaid}>
-                        {v.viaturamarca} ({v.viaturamatricula})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="matricula">Matrícula da Viatura*</Label>
+                <div className="relative">
+                    <Input
+                    id="matricula"
+                    value={matriculaInput}
+                    onChange={handleMatriculaChange}
+                    placeholder="Digite a matrícula (ex: AB-12-CD)"
+                    required
+                    readOnly
+                    />
+                    {viaturaEncontrada && (
+                    <CheckCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500" />
+                    )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="descricao">Descrição*</Label>

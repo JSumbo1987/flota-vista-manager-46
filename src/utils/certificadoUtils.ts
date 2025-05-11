@@ -14,7 +14,7 @@ export const calcularStatusCertificado = (dataVencimento: Date): string => {
   const diasParaVencer = diffEmMilissegundos / (1000 * 60 * 60 * 24);
 
   if (dataVencimento < hoje) {
-    return "expirado";
+    return "vencido";
   } else if (diasParaVencer <= 30) {
     return "a_vencer";
   } else {

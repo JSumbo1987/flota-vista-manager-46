@@ -27,6 +27,7 @@ import EmailSettingsTab from "./components/EmailSettingsTab";
 import CompanySettingsTab from "./components/CompanySettingsTab";
 import SecuritySettingsTab from "./components/SecuritySettingsTab";
 import PermissionsTab from "./components/PermissionsTab";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ConfiguracoesList = () => {
   const { toast } = useToast();
@@ -34,6 +35,7 @@ const ConfiguracoesList = () => {
   const isAdmin = usuario?.permissoes?.some(p => p.cantodos) ?? false;
 
   return (
+    <ScrollArea className="h-[675px]">
     <div className="space-y-4">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
@@ -119,6 +121,7 @@ const ConfiguracoesList = () => {
         </CardFooter>
       </Card>
     </div>
+    </ScrollArea>
   );
 };
 

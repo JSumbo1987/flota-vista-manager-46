@@ -1,19 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Info, AlertTriangle, CheckCircle, XCircle, Car, Users, CalendarDays, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-// Ensure consistent status types
-type TaskStatus = "warning" | "Pendente" | "Concluido" | "Cancelado";
 
 const StatCard = ({
   icon: Icon,
@@ -90,7 +84,7 @@ const LicenseAlert = ({
     <div>
       <p className="text-sm font-medium">{vehicle}</p>
       <p className="text-xs text-muted-foreground">
-        Licença nrº {license}  expira em {expiresIn} {expiresIn === 1 ? "dia" : "dias"}
+        {expiresIn === 0 ? `${license} vencida` : `${license} vence em ${expiresIn} ${expiresIn === 1 ? "dia" : "dias"}`}
       </p>
     </div>
   </div>
@@ -116,7 +110,7 @@ const Dashboard = () => {
     { vehicle: string; license: string; expiresIn: number }[]
   >([]);
   const [proximosAgendamentos, setProximosAgendamentos] = useState<
-    { id: string; title: string; description: string; date: string; status: "pending" | "completed" | "canceled" | "warning" }[]
+    { id: string; title: string; description: string; date: string; status: "agendado" | "em_atendimento" | "concluido" | "cancelado" }[]
   >([]);
   const [ultimosServicos, setUltimosServicos] = useState<
     { id: string; title: string; description: string; date: string; status: "pending" | "completed" | "canceled" | "warning" }[]
@@ -165,7 +159,7 @@ const Dashboard = () => {
           tbltipoassistencia:tipoid(id,nome),
           tblviaturas:viaturaid(viaturaid,viaturamarca, viaturamodelo,viaturamatricula)
         `)
-        .eq("status", "Pendente");
+        .eq("status", "agendado");
 
       if (agendamentosError) {
         console.error("Erro ao buscar agendamentos:", agendamentosError);
@@ -368,6 +362,7 @@ const Dashboard = () => {
   };
 
   return (
+    <ScrollArea className="h-[675px] pr-4">
     <div className="space-y-4">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -482,7 +477,7 @@ const Dashboard = () => {
                 <CardDescription>Agendamentos para os próximos dias</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[220px] pr-4">
+                <ScrollArea className="h-[200px] pr-4">
                   <div className="space-y-2">
                     {proximosAgendamentos.length === 0 && (
                       <p className="text-muted-foreground">Nenhum agendamento pendente.</p>
@@ -501,7 +496,7 @@ const Dashboard = () => {
                 <CardDescription>Serviços realizados recentemente</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[220px] pr-4">
+                <ScrollArea className="h-[200px] pr-4">
                   <div className="space-y-2">
                     {ultimosServicos.length === 0 && <p className="text-muted-foreground">Nenhum serviço registrado.</p>}
                     {ultimosServicos.map(({ id, title, description, date, status }) => (
@@ -519,6 +514,7 @@ const Dashboard = () => {
         </TabsContent>
       </Tabs>
     </div>
+    </ScrollArea>
   );
 };
 

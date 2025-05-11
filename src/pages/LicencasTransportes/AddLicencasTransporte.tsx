@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Calendar } from "lucide-react";
+import { ChevronLeft, Calendar, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,8 +21,10 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { useSanitizedUpload } from "@/hooks/useSanitizedUpload";
 
 const AddLicencaTransportacao = () => {
+  const { uploadFile } = useSanitizedUpload();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +38,8 @@ const AddLicencaTransportacao = () => {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [licencaNumero, setLicencaNumero] = useState("");
   const [custoLicenca, setCustoLicenca] = useState("");
+  const [matriculaInput, setMatriculaInput] = useState("");
+  const [viaturaEncontrada, setViaturaEncontrada] = useState(false);
 
   useEffect(() => {
     const fetchViaturas = async () => {
@@ -56,6 +60,20 @@ const AddLicencaTransportacao = () => {
 
     fetchViaturas();
   }, [toast]);
+
+  const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.toUpperCase();
+    setMatriculaInput(input);
+  
+    const encontrada = viaturas.find(v => v.viaturamatricula.toUpperCase() === input);
+    if (encontrada) {
+      setViaturaEncontrada(true);
+      setViaturaId(encontrada.viaturaid);
+    } else {
+      setViaturaEncontrada(false);
+      setViaturaId("");
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
@@ -83,7 +101,7 @@ const AddLicencaTransportacao = () => {
       const diasParaVencer = diffEmMilissegundos / (1000 * 60 * 60 * 24);
 
       if (dataVencimento < hoje) {
-        return "expirado";
+        return "vencido";
       } else if (diasParaVencer <= 30) {
         return "a_vencer";
       } else {
@@ -94,12 +112,7 @@ const AddLicencaTransportacao = () => {
 
     try {
       // 1. Upload do arquivo
-      const filePath = `licencas-transportacao/${Date.now()}-${arquivo.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("documentos")
-        .upload(filePath, arquivo);
-
-      if (uploadError) throw uploadError;
+      const filePath = await uploadFile(arquivo, "licencas-transportacao");
 
       // 2. Inserção no banco
       const { error: insertError } = await supabase.from("tbllicencatransportacao").insert([
@@ -158,19 +171,18 @@ const AddLicencaTransportacao = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Viatura*</Label>
-                <Select value={String(viaturaId)} onValueChange={(val) => setViaturaId(val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma viatura" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {viaturas.map((v) => (
-                      <SelectItem key={v.viaturaid} value={String(v.viaturaid)}>
-                        {v.viaturamarca} {v.viaturamodelo} ({v.viaturamatricula})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="matricula">Matrícula da Viatura*</Label>
+                <div className="relative">
+                    <Input
+                    id="matricula"
+                    value={matriculaInput}
+                    onChange={handleMatriculaChange}
+                    placeholder="Digite a matrícula (ex: AB-12-CD)"
+                    required
+                    />
+                    {matriculaInput !== "" && (viaturaEncontrada ? ( <CheckCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500" />)
+                    :(<AlertCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500" />))}
+                </div>
               </div>
 
               <div className="space-y-2">

@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
-import { ChevronLeft } from "lucide-react";
+import { AlertCircle, CheckCircle, ChevronLeft } from "lucide-react";
 
 const formSchema = z.object({
   viaturaId: z.string().min(1, "Selecione a viatura"),
@@ -47,9 +47,12 @@ const defaultItensChecklist = [
 ];
 
 const AddChecklist = () => {
-  const navigate = useNavigate();
-  const [viaturas, setViaturas] = useState<any[]>([]);
-  const [motoristas, setMotoristas] = useState<any[]>([]);
+const navigate = useNavigate();
+const [viaturas, setViaturas] = useState<any[]>([]);
+const [motoristas, setMotoristas] = useState<any[]>([]);
+const [matriculaInput, setMatriculaInput] = useState("");
+const [viaturaEncontrada, setViaturaEncontrada] = useState(false);
+const [viaturaId, setViaturaId] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -85,6 +88,20 @@ const AddChecklist = () => {
     };
     fetchData();
   }, []);
+
+  const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.toUpperCase();
+    setMatriculaInput(input);
+  
+    const encontrada = viaturas.find(v => v.viaturamatricula.toUpperCase() === input);
+    if (encontrada) {
+      setViaturaEncontrada(true);
+      setViaturaId(encontrada.viaturaid);
+    } else {
+      setViaturaEncontrada(false);
+      setViaturaId("");
+    }
+  };
 
   const onSubmit = async (data: FormValues) => {
     const { data: checklist, error } = await supabase
@@ -154,22 +171,15 @@ const AddChecklist = () => {
                 <CardTitle>Informações Gerais</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Viatura</Label>
-                  <Select onValueChange={(val) => setValue("viaturaId", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a viatura" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {viaturas.map((v) => (
-                        <SelectItem key={v.viaturaid} value={v.viaturaid.toString()}>
-                          {v.viaturamarca} ({v.viaturamatricula})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.viaturaId && <p className="text-red-500 text-sm">{errors.viaturaId.message}</p>}
+              <div className="space-y-2">
+                <Label htmlFor="matricula">Matrícula da Viatura*</Label>
+                <div className="relative">
+                    <Input id="matricula" value={matriculaInput} onChange={handleMatriculaChange}
+                    placeholder="Digite a matrícula (ex: AB-12-CD)" required/>
+                    {matriculaInput !== "" && (viaturaEncontrada ? ( <CheckCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500" />)
+                    :(<AlertCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500" />))}
                 </div>
+              </div>
 
                 <div>
                   <Label>Motorista</Label>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import NotificacoesList from "./NotificacoesList";
 import NotificacoesSettings from "./NotificacoesSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, Settings } from "lucide-react";
+import { Bell, ListCheck, Settings } from "lucide-react";
 
 const Notificacoes = () => {
   const [activeTab, setActiveTab] = useState<"list" | "settings">("list");
@@ -29,9 +29,9 @@ const Notificacoes = () => {
               <Bell className="h-4 w-4" />
               <span>Notificações</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span>Configurações</span>
+            <TabsTrigger value="settings" className="flex items-center gap-2" disabled>
+              <ListCheck className="h-4 w-4" />
+              <span>Listagem de Notificações</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -40,7 +40,7 @@ const Notificacoes = () => {
           <NotificacoesList />
         </TabsContent>
         <TabsContent value="settings">
-          <NotificacoesSettings />
+          {/*<NotificacoesSettings />*/}
         </TabsContent>
       </Tabs>
     </div>

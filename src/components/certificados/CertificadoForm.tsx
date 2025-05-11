@@ -5,13 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { format } from "date-fns";
 import { supabase } from "@/lib/supabaseClient";
 import DateSelector from "./DateSelector";
@@ -24,6 +17,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useSanitizedUpload } from "@/hooks/useSanitizedUpload";
+import { AlertCircle, CheckCircle } from "lucide-react";
 
 interface Viatura {
   viaturaid: string;
@@ -36,19 +31,21 @@ interface CertificadoFormProps {
   initialData?: any;
   isEditing?: boolean;
   signedUrl?: string | null;
+  matriculaViatura?: string | null;
 }
 
 const CertificadoForm = ({ 
   onSuccess, 
   initialData, 
   isEditing = false,
-  signedUrl 
+  signedUrl,
+  matriculaViatura 
 }: CertificadoFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
-
+  const { uploadFile } = useSanitizedUpload();
   const [viaturaId, setViaturaId] = useState(initialData?.viaturaId || "");
   const [centroInspeccao, setCentroInspeccao] = useState(initialData?.centroInspeccao || "");
   const [numeroDoQuadro, setNumeroDoQuadro] = useState(initialData?.numeroDoQuadro || "");
@@ -63,6 +60,8 @@ const CertificadoForm = ({
   const [custoCertificado, setCustoCertificado] = useState(initialData?.custoCertificado || "");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [arquivoExistente, setArquivoExistente] = useState(initialData?.arquivoExistente || "");
+  const [matriculaInput, setMatriculaInput] = useState("");
+  const [viaturaEncontrada, setViaturaEncontrada] = useState(false);
 
   // Fetch viaturas on component mount
   useEffect(() => {
@@ -82,6 +81,39 @@ const CertificadoForm = ({
     };
     fetchViaturas();
   }, []);
+
+  useEffect(() => {
+    if (matriculaViatura && viaturas.length > 0) {
+      const input = matriculaViatura.toUpperCase();
+      setMatriculaInput(input);
+  
+      const encontrada = viaturas.find(
+        (v) => v.viaturamatricula.toUpperCase() === input
+      );
+  
+      if (encontrada) {
+        setViaturaId(encontrada.viaturaid);
+        setViaturaEncontrada(true);
+      } else {
+        setViaturaId("");
+        setViaturaEncontrada(false);
+      }
+    }
+  }, [matriculaViatura, viaturas]);
+  
+  const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.toUpperCase();
+    setMatriculaInput(input);
+  
+    const encontrada = viaturas.find(v => v.viaturamatricula.toUpperCase() === input);
+    if (encontrada) {
+      setViaturaEncontrada(true);
+      setViaturaId(encontrada.viaturaid);
+    } else {
+      setViaturaEncontrada(false);
+      setViaturaId("");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,12 +146,8 @@ const CertificadoForm = ({
       let filePath = arquivoExistente;
 
       if (arquivo) {
-        const ext = arquivo.name.split(".").pop();
-        filePath = `certificados/${numeroCertificado}-${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("certificados")
-          .upload(filePath, arquivo, { upsert: true });
-        if (uploadError) throw uploadError;
+        // 1. Upload do arquivo
+        filePath = await uploadFile(arquivo, "certificados");
       }
 
       const certificadoData = {
@@ -167,7 +195,7 @@ const CertificadoForm = ({
       } else {
         navigate("/certificados");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast({
         title: "Erro ao salvar",
@@ -202,19 +230,19 @@ const CertificadoForm = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="viatura">Viatura*</Label>
-              <Select value={viaturaId} onValueChange={setViaturaId}>
-                <SelectTrigger id="viatura">
-                  <SelectValue placeholder="Selecione uma viatura" />
-                </SelectTrigger>
-                <SelectContent>
-                  {viaturas.map((v) => (
-                    <SelectItem key={v.viaturaid} value={v.viaturaid}>
-                      {v.viaturamarca} ({v.viaturamatricula})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="matricula">Matrícula da Viatura*</Label>
+              <div className="relative">
+                  <Input
+                  id="matricula"
+                  value={matriculaInput}
+                  onChange={handleMatriculaChange}
+                  placeholder="Digite a matrícula (ex: AB-12-CD)"
+                  required
+                  readOnly={!!matriculaViatura}
+                  />
+                  {matriculaInput !== "" && (viaturaEncontrada ? ( <CheckCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500" />)
+                  :(<AlertCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500" />))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="centro">Centro de Inspeção*</Label>

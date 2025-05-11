@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Calendar } from "lucide-react";
+import { ChevronLeft, Calendar, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +10,6 @@ import {
   CardFooter, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem,
-  SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -21,6 +17,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { useSanitizedUpload } from "@/hooks/useSanitizedUpload";
 
 interface Viatura {
   viaturaid: string;
@@ -47,6 +44,10 @@ const EditLicencaTransporte = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [licencaNumero, setLicencaNumero] = useState<string>("");
   const [custoLicenca, setCustoLicenca] = useState<string>("");
+  const [matriculaInput, setMatriculaInput] = useState("");
+  const [viaturaEncontrada, setViaturaEncontrada] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const { replaceFile } = useSanitizedUpload();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,6 +83,10 @@ const EditLicencaTransporte = () => {
         setCopiaAtual(data.copialicencatransporte);
         setLicencaNumero(data.licencanumero || "");
         setCustoLicenca(data.custolicenca ? data.custolicenca.toString() : "");
+        if (data.copialicencatransporte) {
+          fetchSignedUrl(data.copialicencatransporte);
+        }
+
       } catch (error) {
         toast({
           title: "Erro ao carregar dados",
@@ -97,6 +102,38 @@ const EditLicencaTransporte = () => {
     fetchData();
   }, [id, navigate, toast]);
 
+  useEffect(() => {
+    if (viaturaId && viaturas.length > 0) {
+      const viaturaSelecionada = viaturas.find(v => v.viaturaid === viaturaId);
+      if (viaturaSelecionada) {
+        setMatriculaInput(viaturaSelecionada.viaturamatricula);
+        setViaturaEncontrada(true);
+      }
+    }
+  }, [viaturaId, viaturas]);
+  
+  const fetchSignedUrl = async (path: string) => {
+    if (!path) return;
+    const { data, error } = await supabase.storage
+      .from("documentos")
+      .createSignedUrl(path, 60);
+    if (!error) setSignedUrl(data?.signedUrl ?? null);
+  };
+
+  const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.toUpperCase();
+    setMatriculaInput(input);
+  
+    const encontrada = viaturas.find(v => v.viaturamatricula.toUpperCase() === input);
+    if (encontrada) {
+      setViaturaEncontrada(true);
+      setViaturaId(encontrada.viaturaid);
+    } else {
+      setViaturaEncontrada(false);
+      setViaturaId("");
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       setArquivo(e.target.files[0]);
@@ -107,7 +144,7 @@ const EditLicencaTransporte = () => {
     const hoje = new Date();
     const diasParaVencer = (vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
 
-    if (vencimento < hoje) return "expirado";
+    if (vencimento < hoje) return "vencido";
     if (diasParaVencer <= 30) return "a_vencer";
     return "válido";
   };
@@ -128,18 +165,9 @@ const EditLicencaTransporte = () => {
 
     try {
       let filePath = copiaAtual;
-
       if (arquivo) {
-        filePath = `licencas-transportacao/${Date.now()}-${arquivo.name}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("documentos")
-          .upload(filePath, arquivo, {
-            upsert: true,
-          });
-
-        if (uploadError) throw uploadError;
-      }
+        filePath = await replaceFile(arquivo, copiaAtual, "licencas-transportacao");  
+      }      
 
       const status = calcularStatusLicenca(dataVencimento);
 
@@ -212,19 +240,20 @@ const EditLicencaTransporte = () => {
 
               {/* Viatura */}
               <div className="space-y-2">
-                <Label>Viatura*</Label>
-                <Select value={viaturaId} onValueChange={setViaturaId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma viatura" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {viaturas.map((v) => (
-                      <SelectItem key={v.viaturaid} value={v.viaturaid}>
-                        {v.viaturamarca} {v.viaturamodelo} ({v.viaturamatricula})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="matricula">Matrícula da Viatura*</Label>
+                <div className="relative">
+                    <Input
+                    id="matricula"
+                    value={matriculaInput}
+                    onChange={handleMatriculaChange}
+                    placeholder="Digite a matrícula (ex: AB-12-CD)"
+                    required
+                    readOnly
+                    />
+                    {viaturaEncontrada && (
+                    <CheckCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500" />
+                    )}
+                </div>
               </div>
 
               {/* Número da Licença */}
@@ -312,7 +341,7 @@ const EditLicencaTransporte = () => {
 
               {/* Custo da Licença */}
               <div className="space-y-2">
-                <Label htmlFor="custolicenca">Custo da Licença</Label>
+                <Label htmlFor="custolicenca">Custo da Licença*</Label>
                 <Input
                   id="custolicenca"
                   type="number"
@@ -342,9 +371,16 @@ const EditLicencaTransporte = () => {
                   onChange={handleFileChange}
                 />
                 {copiaAtual && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Cópia da licença actual: {copiaAtual.split("/").pop()}
-                  </p>
+                  <div className="mb-4">
+                    <a
+                      href={`${signedUrl ? signedUrl.toString() : ""}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline hover:text-blue-800"
+                    >
+                      Visualizar Cópia da Licença actual
+                    </a>
+                  </div>
                 )}
               </div>
 

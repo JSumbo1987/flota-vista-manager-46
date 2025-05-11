@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -12,23 +12,128 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/pages/Auth/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
+
+interface NotificationSettings {
+  id: string;
+  usuarioid: number | null;
+  email: boolean;
+  push: boolean;
+  diasantesvencimento: number;
+  manutencao: boolean;
+  documentos: boolean;
+  servicos: boolean;
+}
+
 
 const NotificationSettingsTab = () => {
   const { toast } = useToast();
-  const [notificacoesEmail, setNotificacoesEmail] = useState(true);
-  const [notificacoesPush, setNotificacoesPush] = useState(true);
-  const [diasAntesVencimento, setDiasAntesVencimento] = useState("30");
-  const [notificarManutencao, setNotificarManutencao] = useState(true);
-  const [notificarDocumentos, setNotificarDocumentos] = useState(true);
-  const [notificarAbastecimento, setNotificarAbastecimento] = useState(true);
+  const { usuario } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [settings, setSettings] = useState<NotificationSettings>({
+      id: "",
+      usuarioid: null,
+      email: false,
+      push: false,
+      manutencao: false,
+      documentos: false,
+      diasantesvencimento: 0,
+      servicos: false,
+    });
+
+  useEffect(()=>{
+    if (!usuario) return;
+    const userId = usuario.userid || usuario.funcionarioId;
+    if (!userId) return;
+
+    const fetchSettings = async () => {
+          setIsLoading(true);
+          try {
+            const { data, error } = await supabase
+              .from("tblconfiguracoesnotificacoes")
+              .select("*")
+              .eq("usuarioid", userId)
+              .maybeSingle();
+    
+            if (error) {
+              if (error.code === "PGRST116") {
+                // Record not found, we'll create default settings when saving
+                setSettings({
+                  ...settings,
+                  usuarioid: userId,
+                });
+              } else {
+                throw error;
+              }
+            } else if (data) {
+              setSettings(data);
+            }
+          } catch (error) {
+            console.error("Erro ao carregar configurações:", error);
+            toast({
+              title: "Erro",
+              description: "Não foi possível carregar as configurações de notificação",
+              variant: "destructive",
+            });
+          } finally {
+            setIsLoading(false);
+          }
+    };
+    
+    fetchSettings();
+
+  },[usuario, toast]);
+
+  const handleToggleChange = (key: keyof NotificationSettings, value: boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
 
   const handleSaveNotifications = async () => {
+    if (!usuario) return;
+    
+    const userId = usuario.userid || usuario.funcionarioId;
+    if (!userId) return;
     setIsSaving(true);
     
     try {
-      // Aqui iríamos salvar as configurações de notificações no banco de dados
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Aqui iríamos salvar as configurações de notificações no banco de dados.
+      // Verifica se as configurações existem para este usuário.
+      const { data: existingSettings } = await supabase
+        .from("tblconfiguracoesnotificacoes")
+        .select("usuarioid")
+        .eq("usuarioid", userId)
+        .maybeSingle();
+
+      let error;
+
+      if (existingSettings) {
+        // Update existing settings
+        ({ error } = await supabase
+          .from("tblconfiguracoesnotificacoes")
+          .update(settings)
+          .eq("usuarioid", userId));
+      } else {
+        
+        // Insert new settings
+        ({ error } = await supabase
+          .from("tblconfiguracoesnotificacoes")
+          .insert({
+            usuarioid: userId,
+            email: settings.email,
+            push: settings.push,
+            manutencao: settings.manutencao,
+            documentos: settings.documentos,
+            diasantesvencimento: settings.diasantesvencimento,
+            servicos: settings.servicos
+          }));
+      }
+
+      if (error) throw error;
       
       toast({
         title: "Configurações salvas",
@@ -57,8 +162,9 @@ const NotificationSettingsTab = () => {
           </div>
           <Switch
             id="emailNotifications"
-            checked={notificacoesEmail}
-            onCheckedChange={setNotificacoesEmail}
+            checked={settings.email}
+            onCheckedChange={(checked) => handleToggleChange("email", checked) }
+            disabled={isLoading}
           />
         </div>
         
@@ -73,8 +179,9 @@ const NotificationSettingsTab = () => {
           </div>
           <Switch
             id="pushNotifications"
-            checked={notificacoesPush}
-            onCheckedChange={setNotificacoesPush}
+            checked={settings.push}
+            onCheckedChange={(checked) => handleToggleChange("push", checked) }
+            disabled={isLoading}
           />
         </div>
         
@@ -82,7 +189,8 @@ const NotificationSettingsTab = () => {
         
         <div className="space-y-2">
           <Label htmlFor="daysBeforeExpiry">Dias de Antecedência para Alertas</Label>
-          <Select value={diasAntesVencimento} onValueChange={setDiasAntesVencimento}>
+          <Select value={settings.diasantesvencimento.toString() ?? ""} onValueChange={(value) =>
+            setSettings((prev) => ({ ...prev, diasantesvencimento: parseInt(value, 10), }))}>
             <SelectTrigger id="daysBeforeExpiry">
               <SelectValue placeholder="Selecione os dias" />
             </SelectTrigger>
@@ -108,8 +216,9 @@ const NotificationSettingsTab = () => {
             <Label htmlFor="maintenanceNotifications">Manutenção de Viaturas</Label>
             <Switch
               id="maintenanceNotifications"
-              checked={notificarManutencao}
-              onCheckedChange={setNotificarManutencao}
+              checked={settings.manutencao}
+              onCheckedChange={(checked) => handleToggleChange("manutencao", checked) }
+              disabled={isLoading}
             />
           </div>
           
@@ -117,17 +226,19 @@ const NotificationSettingsTab = () => {
             <Label htmlFor="documentNotifications">Vencimento de Documentos</Label>
             <Switch
               id="documentNotifications"
-              checked={notificarDocumentos}
-              onCheckedChange={setNotificarDocumentos}
+              checked={settings.documentos}
+              onCheckedChange={(checked) => handleToggleChange("documentos", checked) }
+              disabled={isLoading}
             />
           </div>
           
           <div className="flex items-center justify-between">
-            <Label htmlFor="fuelNotifications">Abastecimentos</Label>
+            <Label htmlFor="serviceNotifications">Serviços já realizados</Label>
             <Switch
-              id="fuelNotifications"
-              checked={notificarAbastecimento}
-              onCheckedChange={setNotificarAbastecimento}
+              id="serviceNotifications"
+              checked={settings.servicos}
+              onCheckedChange={(checked) => handleToggleChange("servicos", checked) }
+              disabled={isLoading}
             />
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, Edit, Trash, Plus, ChevronDown, BadgePercent } from "lucide-react";
+import { EyeIcon, Edit, Trash, Plus, ChevronDown, BadgePercent, Filter } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -35,6 +35,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { usePermissao } from "@/hooks/usePermissao";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const LicencaTransporteList = () => {
   const navigate = useNavigate();
@@ -45,6 +48,24 @@ const LicencaTransporteList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [licencaToDelete, setLicencaToDelete] = useState(null);
   const { temPermissao } = usePermissao(); 
+  const [filtroMatricula, setFiltroMatricula] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos"); // 'todos', 'vencidos', 'avencer'
+
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const licencasFiltradas = licencas.filter((licenca) =>{
+    const matchMatriculaOuNumero = 
+      licenca.viaturamatricula.toLowerCase().includes(filtroMatricula.toLowerCase()) ||
+      licenca.numerolicenca.toLowerCase().includes(filtroMatricula.toLowerCase());
+    const matchStatus = statusFilter === "todos" || licenca.licencastatus === statusFilter;
+
+    return matchMatriculaOuNumero && matchStatus;
+  });
+  const currentLicencas = licencasFiltradas.slice(indexOfFirstItem, indexOfLastItem);
+  //Fim paginação
 
   useEffect(() => {
     const fetchLicencas = async () => {
@@ -75,6 +96,7 @@ const LicencaTransporteList = () => {
 
             return {
               id: item.id,
+              numerolicenca: item.licencanumero,
               descricao: item.descricao,
               observacao: item.observacao,
               proprietario: item.proprietario,
@@ -83,8 +105,9 @@ const LicencaTransporteList = () => {
               licencastatus: item.licencastatus,
               signedUrl,
               viatura: item.tblviaturas
-                ? `${item.tblviaturas.viaturamarca} ${item.tblviaturas.viaturamodelo} (${item.tblviaturas.viaturamatricula})`
+                ? `${item.tblviaturas.viaturamarca} ${item.tblviaturas.viaturamodelo}`
                 : "N/A",
+              viaturamatricula:item.tblviaturas.viaturamatricula,
             };
           })
         );
@@ -167,8 +190,8 @@ const LicencaTransporteList = () => {
         return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Válido</Badge>;
       case "a_vencer":
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">A vencer</Badge>;
-      case "expirado":
-        return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Expirado</Badge>;
+      case "vencido":
+        return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Vencido</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -191,6 +214,27 @@ const LicencaTransporteList = () => {
           <Plus className="mr-2 h-4 w-4" /> Nova Licença
         </Button>)}
       </div>
+      <hr/>
+      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-4">
+        <input type="text" placeholder="Pesquisar por matrícula ou número da licença" value={filtroMatricula}
+          onChange={(e) => setFiltroMatricula(e.target.value.toUpperCase())}
+          className="w-full md:w-1/3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+        <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
+            <SelectTrigger className="w-[180px]">
+              <div className="flex items-center">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Filtrar" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="vencido">Vencidos</SelectItem>
+              <SelectItem value="a_vencer">A vencer</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -200,23 +244,26 @@ const LicencaTransporteList = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+        <ScrollArea className="h-[350px]">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Número</TableHead>
                 <TableHead>Proprietário</TableHead>
                 <TableHead>Viatura</TableHead>
-                <TableHead>Data de Emissão</TableHead>
+                <TableHead>Matrícula</TableHead>
                 <TableHead>Data de Validade</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {licencas.map((licenca) => (
+              {currentLicencas.map((licenca) => (
                 <TableRow key={licenca.id}>
+                  <TableCell className="font-medium">{licenca.numerolicenca}</TableCell>
                   <TableCell className="font-medium">{licenca.proprietario}</TableCell>
                   <TableCell>{licenca.viatura}</TableCell>
-                  <TableCell>{new Date(licenca.dataemissao).toLocaleDateString("pt-PT")}</TableCell>
+                  <TableCell>{licenca.viaturamatricula}</TableCell>
                   <TableCell>{new Date(licenca.datavencimento).toLocaleDateString("pt-PT")}</TableCell>
                   <TableCell>{getStatusBadge(licenca.licencastatus)}</TableCell>
                   <TableCell className="text-right">
@@ -244,7 +291,7 @@ const LicencaTransporteList = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {licencas.length === 0 && (
+              {licencasFiltradas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center">
                     Nenhuma licença de transporte encontrado.
@@ -253,6 +300,14 @@ const LicencaTransporteList = () => {
               )}
             </TableBody>
           </Table>
+          </ScrollArea>
+          {/*Paginação*/}
+          <Pagination
+              totalItems={licencasFiltradas.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

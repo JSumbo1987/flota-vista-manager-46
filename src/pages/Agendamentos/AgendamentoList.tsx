@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, Edit, Trash, Plus, ChevronDown, FileCheck } from "lucide-react";
+import { EyeIcon, Edit, Trash, Plus, ChevronDown, FileCheck, Filter, Edit2Icon, RefreshCw } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -35,6 +35,12 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { usePermissao } from "@/hooks/usePermissao";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import EstadoServicoModal from "@/components/agendamentos/EstadoAgendamentoModal";
+import { title } from "process";
+import { Toast } from "@/components/ui/toast";
 
 interface Agendamento {
   id: number;
@@ -53,9 +59,10 @@ const AgendamentoDetails = ({ agendamento, onClose }: { agendamento: Agendamento
 
   const getStatusClass = (status: string) => {
     switch (status) {
-      case "Concluído": return "bg-green-100 text-green-800 border-green-200";
-      case "Pendente": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "Cancelado": return "bg-red-100 text-red-800 border-red-200";
+      case "concluido": return "bg-green-100 text-green-800 border-green-200";
+      case "agendado": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "em_atendimento": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+      case "cancelado": return "bg-red-100 text-red-800 border-red-200";
       default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
@@ -77,24 +84,24 @@ const AgendamentoDetails = ({ agendamento, onClose }: { agendamento: Agendamento
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Tipo</p>
-            <p className="text-sm font-medium">{agendamento.tbltipoassistencia?.nome}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Responsável</p>
-            <p className="text-sm font-medium">{agendamento.tblusuarios?.usernome}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Data Agendada</p>
-            <p className="text-sm font-medium">{agendamento.dataagendada}</p>
-          </div>
-          <div>
             <p className="text-sm text-muted-foreground">Viatura</p>
             <p className="text-sm font-medium">{agendamento.tblviaturas?.viaturamarca} ( {agendamento.tblviaturas?.viaturamodelo} )</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Matrícula</p>
             <p className="text-sm font-medium">{agendamento.tblviaturas?.viaturamatricula}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Tipo</p>
+            <p className="text-sm font-medium">{agendamento.tbltipoassistencia?.nome}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Data Agendada</p>
+            <p className="text-sm font-medium">{agendamento.dataagendada}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Observação</p>
+            <p className="text-sm font-medium">{agendamento.observacao}</p>
           </div>
         </div>
         
@@ -115,34 +122,64 @@ const AgendamentoList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [agendamentoToDelete, setAgendamentoToDelete] = useState<number | null>(null);
   const { temPermissao } = usePermissao();
+  const [filtroMatricula, setFiltroMatricula] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [modalAberto, setModalAberto] = useState(false)
+  const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<any>(null)
+
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const agendamentoFiltradas = agendamentos.filter((agendamento) => {
+    const correspondeMatricula = 
+      agendamento.tblviaturas.viaturamatricula.toLowerCase().includes(filtroMatricula.toLowerCase());
+      const correspondeEstado = filtroEstado === "todos" || agendamento.status === filtroEstado;
+    return correspondeMatricula && correspondeEstado;
+  });
+  const currentAgendamentos = agendamentoFiltradas.slice(indexOfFirstItem, indexOfLastItem);
+  //Fim paginação
 
   useEffect(() => {
-    const fetchAgendamentos = async () => {
-      const { data, error } = await supabase
-        .from("tblagendamentoservico")
-        .select(`*,
-          tblusuarios:userid(usernome),
-          tblviaturas:viaturaid(viaturamarca, viaturamodelo, viaturamatricula),
-          tbltipoassistencia:tipoid(nome)
-        `);
-      if (error) {
-        console.error("Erro ao buscar agendamentos:", error);
-      } else {
-        setAgendamentos(data);
-      }
-    };
-
     fetchAgendamentos();
   }, []);
+
+  const fetchAgendamentos = async () => {
+    const { data, error } = await supabase
+      .from("tblagendamentoservico")
+      .select(`*,
+        tblviaturas:viaturaid(viaturamarca, viaturamodelo, viaturamatricula),
+        tbltipoassistencia:tipoid(nome)
+      `);
+    if (error) {
+      console.error("Erro ao buscar agendamentos:", error);
+    } else {
+      setAgendamentos(data);
+    }
+  };
 
   const handleDelete = (id: number) => {
     setAgendamentoToDelete(id);
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
-    toast({ title: "Agendamento excluído", description: `O agendamento foi excluído com sucesso.` });
-    setShowDeleteDialog(false);
+  const confirmDelete = async() => {
+    if(!agendamentoToDelete) return;
+    
+    try {
+      const {error} = await supabase.from("tblagendamentoservico")
+        .delete().eq("id", agendamentoToDelete);
+
+      if(error) return error;
+      toast({ title: "Agendamento excluído", description: `O agendamento foi excluído com sucesso.` });
+      fetchAgendamentos();
+    } catch (error) {
+      console.log("Erro ocorrido ao excluir agendamento de serviço. ",error);
+      toast({ title: "Erro de exclusão", description: `Não foi possível excluir o agendamento, verifique a console.`});
+    }finally{
+      setShowDeleteDialog(false);
+    }
   };
 
   const viewDetails = (agendamento: Agendamento) => {
@@ -151,14 +188,27 @@ const AgendamentoList = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Concluído": return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Concluído</Badge>;
-      case "Pendente": return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendente</Badge>;
-      case "Cancelado": return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Cancelado</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+    switch (status.toLowerCase()) {
+      case "agendado":
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Agendado</Badge>;
+      case "em_atendimento":
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-100">Em atendimento</Badge>;
+      case "cancelado":
+        return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Cancelado</Badge>;
+      case "concluido":
+        return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Concluído</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
+  const abrirModal = (agendamento) => {
+    if (agendamento) {
+      setAgendamentoSelecionado(agendamento);
+      setModalAberto(true);
+    }
+  };
+  
   if (!temPermissao('agendamentos',"canview")) {
     return <p>Você não tem permissão para visualizar esta página.</p>;
   }
@@ -174,6 +224,29 @@ const AgendamentoList = () => {
           <Plus className="mr-2 h-4 w-4" /> Novo Agendamento 
         </Button>)}
       </div>
+      <hr/>
+      <div className="flex flex-col md:flex-row gap-4 mt-4">
+        <input type="text" placeholder="Pesquisar por matrícula da viatura" value={filtroMatricula}
+          onChange={(e) => { setFiltroMatricula(e.target.value.toUpperCase());
+            setCurrentPage(1); }}
+          className="w-full md:w-1/3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+        <Select value={filtroEstado} onValueChange={(value) => {
+            setFiltroEstado(value); setCurrentPage(1); }}>
+          <SelectTrigger className="w-[280px]">
+            <div className="flex items-center">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Filtrar pelo Estado" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os Estados</SelectItem>
+            <SelectItem value="agendado">Agendado</SelectItem>
+            <SelectItem value="em_atendimento">Em Atendimento</SelectItem>
+            <SelectItem value="concluido">Concluído</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       <Card>
         <CardHeader>
@@ -181,6 +254,7 @@ const AgendamentoList = () => {
           <CardDescription>Agendamentos registrados no sistema</CardDescription>
         </CardHeader>
         <CardContent>
+        <ScrollArea className="h-[350px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -193,9 +267,9 @@ const AgendamentoList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {agendamentos.map((agendamento) => (
+              {currentAgendamentos.map((agendamento) => (
                 <TableRow key={agendamento.id}>
-                  <TableCell>{agendamento.tblviaturas?.viaturamarca} - ( {agendamento.tblviaturas?.viaturamodelo} )</TableCell>
+                  <TableCell>{agendamento.tblviaturas?.viaturamarca} {agendamento.tblviaturas?.viaturamodelo}</TableCell>
                   <TableCell>{agendamento.tblviaturas?.viaturamatricula}</TableCell>
                   <TableCell>{agendamento.tbltipoassistencia?.nome}</TableCell>
                   <TableCell>{new Date(agendamento.dataagendada).toLocaleDateString("pt-PT", {
@@ -210,6 +284,9 @@ const AgendamentoList = () => {
                         {temPermissao("agendamentos","canview") && (<DropdownMenuItem onClick={() => viewDetails(agendamento)}>
                           <EyeIcon className="mr-2 h-4 w-4" /> Ver detalhes
                         </DropdownMenuItem>)}
+                        {temPermissao("agendamentos","canedit") && (<DropdownMenuItem onClick={() => abrirModal(agendamento)}>
+                          <RefreshCw className="mr-2 h-4 w-4" /> Alterar Estado
+                        </DropdownMenuItem>)}
                         {temPermissao("agendamentos","canedit") && (<DropdownMenuItem onClick={() => navigate(`/agendamentos/edit/${agendamento.id}`)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>)}
@@ -221,7 +298,7 @@ const AgendamentoList = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {agendamentos.length === 0 && (
+              {agendamentoFiltradas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center">
                     Nenhum agendamento encontrado.
@@ -230,6 +307,14 @@ const AgendamentoList = () => {
               )}
             </TableBody>
           </Table>
+          </ScrollArea>
+          {/*Paginação*/}
+          <Pagination
+              totalItems={agendamentoFiltradas.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+          />
         </CardContent>
       </Card>
 
@@ -249,6 +334,22 @@ const AgendamentoList = () => {
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <AgendamentoDetails agendamento={selectedAgendamento} onClose={() => setShowDetailsDialog(false)} />
       </Dialog>
+     
+      {agendamentoSelecionado && (
+        <EstadoServicoModal
+          open={modalAberto}
+          onClose={() => setModalAberto(false)}
+          agendamento={agendamentoSelecionado}
+          onSalvar={() => {
+            // Você pode recarregar a lista aqui
+            setModalAberto(false)
+            setAgendamentoSelecionado(null)
+            // Recarregar a lista, ex: fetchAgendamentos()
+            fetchAgendamentos();
+          }}
+        />
+      )}
+
     </div>
   );
 };

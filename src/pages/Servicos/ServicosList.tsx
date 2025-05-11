@@ -34,6 +34,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { usePermissao } from "@/hooks/usePermissao";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Tipos corrigidos para incluir os campos relacionados
 interface Viatura {
@@ -77,7 +79,7 @@ const ServicoDetails = ({
   onClose: () => void;
 }) => {
   if (!servico) return null;
-
+console.log(servico);
   return (
     <DialogContent className="max-w-md">
       <DialogHeader>
@@ -95,34 +97,32 @@ const ServicoDetails = ({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Viatura</p>
-            <p className="text-sm font-medium">{servico.viatura.viaturamarca}</p>
+            <p className="text-sm font-medium">{servico.tblviaturas?.viaturamarca}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Matrícula</p>
-            <p className="text-sm font-medium">{servico.viatura.viaturamatricula}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Tipo de Serviço</p>
-            <p className="text-sm font-medium">{servico.tipo?.nome}</p>
+            <p className="text-sm font-medium">{servico.tblviaturas?.viaturamatricula}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Categoria do Serviço</p>
-            <p className="text-sm font-medium">{servico.categoria?.nome}</p>
+            <p className="text-sm font-medium">{servico.tblcategoriaassistencia?.nome}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Tipo de Serviço</p>
+            <p className="text-sm font-medium">{servico.tbltipoassistencia?.nome}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Prestador de Serviço</p>
-            <p className="text-sm font-medium">{servico.prestador.prestadornome}</p>
+            <p className="text-sm font-medium">{servico.tblprestador?.prestadornome}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Custo ($)</p>
+            <p className="text-sm font-medium">{parseFloat(servico.custo).toLocaleString()}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Data do Serviço</p>
             <p className="text-sm font-medium">
               {new Date(servico.dataservico).toLocaleDateString("pt-PT")}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Custo</p>
-            <p className="text-sm font-medium">
-              Kz {parseFloat(servico.custo).toLocaleString()}
             </p>
           </div>
         </div>
@@ -154,6 +154,17 @@ const ServicosList = () => {
   const [servicoToDelete, setServicoToDelete] = useState<Servico | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { temPermissao } = usePermissao();
+  const [filtroMatricula, setFiltroMatricula] = useState("");
+
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const servicosFiltradas = servicos.filter((servico) =>
+    servico.tblviaturas.viaturamatricula.toLowerCase().includes(filtroMatricula.toLowerCase()));
+  const currentServicos = servicosFiltradas.slice(indexOfFirstItem, indexOfLastItem);  
+//Fim paginação
 
   // Buscar dados do Supabase
   const fetchServicos = async () => {
@@ -184,13 +195,13 @@ const ServicosList = () => {
   }, []);
 
   // Exibir detalhes do serviço
-  const viewDetails = (servico: Servico) => {
+  const viewDetails = (servico) => {
     setSelectedServico(servico);
     setShowDetailsDialog(true);
   };
 
   // Preparar para exclusão
-  const handleDelete = (servico: Servico) => {
+  const handleDelete = (servico) => {
     setServicoToDelete(servico);
     setShowDeleteDialog(true);
   };
@@ -248,6 +259,14 @@ const ServicosList = () => {
           <Plus className="mr-2 h-4 w-4" /> Novo Serviço
         </Button>)}
       </div>
+      <hr/>
+      <div className="mt-4">
+        <input type="text" placeholder="Pesquisar por matrícula da viatura" value={filtroMatricula}
+          onChange={(e) => setFiltroMatricula(e.target.value.toUpperCase())}
+          className="w-full md:w-1/3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          maxLength={12}
+        />
+      </div>
 
       <Card>
         <CardHeader>
@@ -255,15 +274,17 @@ const ServicosList = () => {
           <CardDescription>Serviços cadastrados no sistema</CardDescription>
         </CardHeader>
         <CardContent>
+        <ScrollArea className="h-[350px]">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Viatura</TableHead>
+                <TableHead>Matrícula</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Prestador</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead>Custo</TableHead>
+                <TableHead>Custo ($)</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -271,22 +292,19 @@ const ServicosList = () => {
               {servicos.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-10">
-                    Nenhum serviço cadastrado.
+                    Nenhum serviço encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
-                servicos.map((servico) => (
+                currentServicos.map((servico) => (
                   <TableRow key={servico.id}>
-                    <TableCell>{servico.tblviaturas?.viaturamarca} ( {servico.tblviaturas?.viaturamatricula} )</TableCell>
+                    <TableCell>{servico.tblviaturas?.viaturamarca} {servico.tblviaturas?.viaturamodelo}</TableCell>
+                    <TableCell>{servico.tblviaturas?.viaturamatricula}</TableCell>
                     <TableCell>{servico.tbltipoassistencia?.nome}</TableCell>
                     <TableCell>{servico.tblcategoriaassistencia?.nome}</TableCell>
                     <TableCell>{servico.tblprestador?.prestadornome}</TableCell>
-                    <TableCell>
-                      {new Date(servico.dataservico).toLocaleDateString("pt-PT")}
-                    </TableCell>
-                    <TableCell>
-                      Kz {parseFloat(servico.custo).toLocaleString()}
-                    </TableCell>
+                    <TableCell>{new Date(servico.dataservico).toLocaleDateString("pt-PT")}</TableCell>
+                    <TableCell>{parseFloat(servico.custo).toLocaleString()}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -296,11 +314,7 @@ const ServicosList = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {temPermissao('servicos','canview') && (<DropdownMenuItem onClick={() => viewDetails(servico)}>
-                            <EyeIcon className="mr-2 h-4 w-4" />
-                            Ver detalhes
-                          </DropdownMenuItem>)}
-                          {temPermissao('servicos','canedit') && (<DropdownMenuItem onClick={() => navigate(`/servicos/edit/${servico.id}`)}>
-                            <Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>)}
+                            <EyeIcon className="mr-2 h-4 w-4" />Ver detalhes</DropdownMenuItem>)}
                           {temPermissao('servicos','candelete') && (<DropdownMenuItem onClick={() => handleDelete(servico)}
                             className="text-destructive focus:text-destructive">
                             <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>)}
@@ -310,15 +324,16 @@ const ServicosList = () => {
                   </TableRow>
                 ))
               )}
-              {servicos.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center">
-                    Nenhum serviço encontrado.
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
+          </ScrollArea>
+          {/*Paginação*/}
+          <Pagination
+              totalItems={servicosFiltradas.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

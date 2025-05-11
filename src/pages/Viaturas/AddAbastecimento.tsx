@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Calendar } from "lucide-react";
+import { ChevronLeft, Calendar, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -44,20 +44,42 @@ const AddAbastecimento = () => {
   const [nrTalaoAbastecimento, setNrTalaoAbastecimento] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [file, setFile] = useState<File | null>(null);
-
+  const [matriculaInput, setMatriculaInput] = useState("");
+  const [viaturaEncontrada, setViaturaEncontrada] = useState(false);
   const [viaturas, setViaturas] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: viaturas } = await supabase
+    const fetchViaturas = async () => {
+      const { data, error } = await supabase
         .from("tblviaturas")
         .select("viaturaid, viaturamarca, viaturamatricula");
 
-      if (viaturas) setViaturas(viaturas);
+      if (!error && data) {
+        setViaturas(
+          data.map((v) => ({
+            ...v,
+            viaturaid: String(v.viaturaid), // força string
+          }))
+        );
+      }
     };
 
-    fetchData();
+    fetchViaturas();
   }, []);
+
+  const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.toUpperCase();
+    setMatriculaInput(input);
+  
+    const encontrada = viaturas.find(v => v.viaturamatricula.toUpperCase() === input);
+    if (encontrada) {
+      setViaturaEncontrada(true);
+      setViaturaId(encontrada.viaturaid);
+    } else {
+      setViaturaEncontrada(false);
+      setViaturaId("");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,120 +167,90 @@ console.log(error);
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="matricula">Matrícula da Viatura*</Label>
+                  <div className="relative">
+                      <Input
+                      id="matricula"
+                      value={matriculaInput}
+                      onChange={handleMatriculaChange}
+                      placeholder="Digite a matrícula (ex: AB-12-CD)"
+                      required
+                      />
+                      {viaturaEncontrada && (
+                      <CheckCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500" />
+                      )}
+                  </div>
+                </div>
+                {/* Número do Talão */}
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="nrtalao">Número do Talão</Label>
+                  <Input id="nrtalao" value={nrTalaoAbastecimento} onChange={(e) => setNrTalaoAbastecimento(e.target.value.toUpperCase())}
+                    placeholder="Número do talão" maxLength={20}/>
+                </div>
 
-              {/* Viatura */}
-              <div className="space-y-2">
-                <Label htmlFor="viatura">Viatura*</Label>
-                <Select value={viaturaId} onValueChange={setViaturaId}>
-                  <SelectTrigger id="viatura">
-                    <SelectValue placeholder={viaturas.length === 0 ? "Carregando viaturas..." : "Selecione uma viatura"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {viaturas.map((v) => (
-                      <SelectItem key={v.viaturaid} value={String(v.viaturaid)}>
-                        {v.viaturamarca} ({v.viaturamatricula})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Data Abastecimento */}
-              <div className="space-y-2">
-                <Label>Data do Abastecimento*</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dataAbastecimento && "text-muted-foreground")}>
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {dataAbastecimento
-                        ? format(dataAbastecimento, "dd/MM/yyyy", { locale: ptBR })
-                        : <span>Selecione uma data</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={dataAbastecimento}
-                      onSelect={setDataAbastecimento}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Litros */}
-              <div className="space-y-2">
-                <Label htmlFor="litros">Litros*</Label>
-                <Input
-                  id="litros"
-                  type="number"
-                  value={litros}
-                  onChange={(e) => setLitros(e.target.value)}
-                  placeholder="Quantidade abastecida"
-                />
-              </div>
-
-              {/* Preço por Litro */}
-              <div className="space-y-2">
-                <Label htmlFor="precolitro">Preço por Litro*</Label>
-                <Input
-                  id="precolitro"
-                  type="number"
-                  value={precoLitro}
-                  onChange={(e) => setPrecoLitro(e.target.value)}
-                  placeholder="Preço unitário"
-                />
-              </div>
-
-              {/* Posto de Abastecimento */}
-              <div className="space-y-2">
-                <Label htmlFor="posto">Posto de Abastecimento</Label>
-                <Input
-                  id="posto"
-                  value={postoAbastecimento}
-                  onChange={(e) => setPostoAbastecimento(e.target.value)}
-                  placeholder="Nome do posto"
-                />
-              </div>
-
-              {/* Número do Talão */}
-              <div className="space-y-2">
-                <Label htmlFor="nrtalao">Número do Talão</Label>
-                <Input
-                  id="nrtalao"
-                  value={nrTalaoAbastecimento}
-                  onChange={(e) => setNrTalaoAbastecimento(e.target.value)}
-                  placeholder="Número do talão"
-                />
-              </div>
-
-              {/* Observações */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="observacoes">Observações</Label>
-                <Input
-                  id="observacoes"
-                  value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
-                  placeholder="Alguma observação adicional"
-                />
-              </div>
-
-              {/* Upload do Talão */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="file">Talão (opcional)</Label>
-                <Input
-                  id="file"
-                  type="file"
-                  accept="application/pdf,image/*"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setFile(e.target.files[0]);
-                    }
-                  }}
-                />
-              </div>
-
+                <div className="grid grid-rows-1 md:grid-cols-2 gap-4">
+                  <div className="col-span-2 flex gap-4">
+                      {/* Posto de Abastecimento */}
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="posto">Posto de Abastecimento</Label>
+                        <Input id="posto" value={postoAbastecimento} onChange={(e) => setPostoAbastecimento(e.target.value.toUpperCase())}
+                          placeholder="Nome do posto"/>
+                      </div>
+                      {/* Litros */}
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="litros">Litros*</Label>
+                        <Input id="litros" type="number" value={litros} onChange={(e) => setLitros(e.target.value)}
+                          placeholder="Quantidade abastecida"/>
+                      </div>
+                    </div>
+                  <div className="col-span-2 flex gap-4">
+                      {/* Preço por Litro */}
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="precolitro">Preço por Litro*</Label>
+                        <Input id="precolitro" type="number" value={precoLitro} onChange={(e) => setPrecoLitro(e.target.value)}
+                          placeholder="Preço unitário"/>
+                      </div>
+                      {/* Data Abastecimento */}
+                      <div className="flex-1 space-y-2">
+                        <Label>Data do Abastecimento*</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dataAbastecimento && "text-muted-foreground")}>
+                              <Calendar className="mr-2 h-4 w-4" />
+                              {dataAbastecimento
+                                ? format(dataAbastecimento, "dd/MM/yyyy", { locale: ptBR })
+                                : <span>Selecione uma data</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={dataAbastecimento}
+                              onSelect={setDataAbastecimento}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      </div>
+                </div>
+                <div className="space-y-4">
+                    {/* Upload do Talão */}
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="file">Talão (opcional)</Label>
+                      <Input id="file" type="file" accept="application/pdf,image/*"
+                        onChange={(e) => { if (e.target.files && e.target.files[0]) { setFile(e.target.files[0]); }
+                        }}/>
+                    </div> 
+                    {/* Observações */}
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="observacoes">Observações</Label>
+                      <Input id="observacoes" value={observacoes} onChange={(e) => setObservacoes(e.target.value)}
+                        placeholder="Alguma observação adicional" />
+                    </div>
+                </div>
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">

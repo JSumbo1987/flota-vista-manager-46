@@ -25,7 +25,6 @@ import { AuthProvider } from "./pages/Auth/AuthContext";
 import AddAgendamento from "./pages/Agendamentos/AddAgendamento";
 import EditAgendamento from "./pages/Agendamentos/EditAgendamento";
 import AddServico from "./pages/Servicos/AddServicos";
-import EditServico from "./pages/Servicos/EditServicos";
 import AddChecklist from "./pages/CheckList/AddCheckList";
 import ChecklistDetails from "./pages/CheckList/ChecklistDetails";
 import EditChecklist from "./pages/CheckList/EditCheckList";
@@ -48,6 +47,7 @@ import Notificacoes from "./pages/Notificacoes/Notificacoes";
 import ConfiguracoesList from "./pages/Configuracoes/ConfiguracoesList";
 import AddUsuario from "./pages/Usuarios/AddUsuario";
 import EditUsuario from "./pages/Usuarios/EditUsuario";
+import DocumentosViatura from "./pages/Viaturas/DocumentosViatura";
 
 const queryClient = new QueryClient();
 
@@ -136,6 +136,14 @@ const App = () => (
               element={
                 <MainLayout>
                   <DetalhesAbastecimento />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/viaturas/documentos/:viaturaId"
+              element={
+                <MainLayout>
+                  <DocumentosViatura />
                 </MainLayout>
               }
             />
@@ -236,14 +244,6 @@ const App = () => (
               element={
                 <MainLayout>
                   <AddServico />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/servicos/edit/:id"
-              element={
-                <MainLayout>
-                  <EditServico />
                 </MainLayout>
               }
             />

@@ -35,6 +35,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { usePermissao } from "@/hooks/usePermissao";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Checklist {
   id: number;
@@ -194,6 +196,17 @@ const ChecklistsList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [checklistToDelete, setChecklistToDelete] = useState<number | null>(null);
   const { temPermissao } = usePermissao(); 
+  const [filtroMatricula, setFiltroMatricula] = useState("");
+
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const checklistFiltradas = checklists.filter((checklist) =>
+    checklist.tblviaturas.viaturamatricula.toLowerCase().includes(filtroMatricula.toLowerCase()));
+  const currentChecklists = checklistFiltradas.slice(indexOfFirstItem, indexOfLastItem);  
+//Fim paginação
 
   const fetchChecklists = async () => {
     const { data, error } = await supabase
@@ -276,6 +289,16 @@ const ChecklistsList = () => {
           <Plus className="mr-2 h-4 w-4" /> Novo Checklist{" "}
         </Button>)}
       </div>
+      <hr/>
+      <div className="mt-4">
+        <input
+          type="text"
+          placeholder="Pesquisar por matrícula da viatura"
+          value={filtroMatricula}
+          onChange={(e) => setFiltroMatricula(e.target.value.toUpperCase())}
+          className="w-full md:w-1/3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
 
       <Card>
         <CardHeader>
@@ -283,6 +306,7 @@ const ChecklistsList = () => {
           <CardDescription>Checklists cadastrados no sistema</CardDescription>
         </CardHeader>
         <CardContent>
+        <ScrollArea className="h-[350px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -296,7 +320,7 @@ const ChecklistsList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {checklists.map((checklist) => (
+              {currentChecklists.map((checklist) => (
                 <TableRow key={checklist.id}>
                   <TableCell>
                     {checklist.tblviaturas?.viaturamarca} ({checklist.tblviaturas?.viaturamatricula})
@@ -340,6 +364,14 @@ const ChecklistsList = () => {
             )}
             </TableBody>
           </Table>
+          </ScrollArea>
+          {/*Paginação*/}
+          <Pagination
+              totalItems={checklistFiltradas.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

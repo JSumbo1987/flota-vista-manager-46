@@ -51,12 +51,12 @@ const Sidebar = ({ onClose, collapsed, onToggleCollapse }: SidebarProps) => {
 
   const navItems = [
     { icon: Home, label: "Dashboard", href: "/", permissao: "dashboard" },
-    { icon: Car, label: "Viaturas", href: "/viaturas", permissao: "viaturas" },
     { icon: Users, label: "Funcionários", href: "/funcionarios", permissao: "funcionarios" },
-    { icon: Calendar, label: "Agendamentos", href: "/agendamentos", permissao: "agendamentos" },
+    { icon: Car, label: "Viaturas", href: "/viaturas", permissao: "viaturas" },
+    { icon: Calendar, label: "Agendar Serviços", href: "/agendamentos", permissao: "agendamentos" },
     { icon: FileText, label: "Serviços", href: "/servicos", permissao: "servicos" },
     { icon: Clipboard, label: "Checklist", href: "/checklist", permissao: "checklist" },
-    { icon: FileCheck, label: "Certificados", href: "/certificados", permissao: "certificados" },
+    { icon: FileCheck, label: "Certificado Inspeção", href: "/certificados", permissao: "certificados" },
     { icon: Truck, label: "Licença Transporte", href: "/licenca-transporte", permissao: "licenca-transporte" },
     { icon: Award, label: "Licença Publicidade", href: "/licenca-publicidade", permissao: "licenca-publicidade" },
     { icon: User, label: "Usuários", href: "/usuarios", permissao: "usuarios" },

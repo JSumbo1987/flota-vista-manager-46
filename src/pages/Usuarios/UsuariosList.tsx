@@ -35,6 +35,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { usePermissao } from "@/hooks/usePermissao";
+import { gerarHashSenha } from "@/hooks/GerarHashSenha";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const UsuariosList = () => {
   const navigate = useNavigate();
@@ -51,6 +54,21 @@ const UsuariosList = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const { temPermissao } = usePermissao();
+  const [termoBuscaUsuario, setTermoBuscaUsuario] = useState("");
+
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  
+  // Filtro por nome OU email
+  const usuariosFiltrados = usuarios.filter(user =>
+    user.usernome.toLowerCase().includes(termoBuscaUsuario.toLowerCase()) ||
+    user.useremail.toLowerCase().includes(termoBuscaUsuario.toLowerCase())
+  );
+  const currentUsuarios = usuariosFiltrados.slice(indexOfFirstItem, indexOfLastItem);
+  //Fim paginação
 
   // Buscar usuários
   useEffect(() => {
@@ -133,23 +151,36 @@ const UsuariosList = () => {
     }
   };
 
-  // Resetar senha (gera senha aleatória e envia e-mail - simulação)
+  // Gera uma senha aleatória
+  const generateRandomPassword = (length = 10) => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!";
+    return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
   const resetPassword = async (user) => {
+    const novaSenha = generateRandomPassword();
+    const senhaHash = await gerarHashSenha(novaSenha);
+
     try {
-      // Simulação de reset
-      const { error } = await supabase.rpc("resetar_senha_usuario", {
-        p_userid: user.userid,
-      });
+      // Atualize com o campo real da senha, se estiver criptografando, aplique hash aqui
+      const { error } = await supabase
+        .from("tblusuarios")
+        .update({ usersenha: senhaHash }) // ou usersenha: hash(novaSenha) se for necessário
+        .eq("userid", user.userid);
+
       if (error) throw error;
 
+      // Simulação de envio de e-mail
+      console.log(`Nova senha do usuário ${user.useremail}: ${novaSenha}`);
+
       toast({
-        title: "Senha resetada",
-        description: `Senha do usuário ${user.usernome} resetada com sucesso.`,
+        title: "Senha resetada com sucesso",
+        description: `A nova senha foi gerada e enviada para o e-mail do usuário (simulado).`,
       });
     } catch (error) {
       toast({
-        title: "Erro",
-        description: error.message || "Erro ao resetar senha.",
+        title: "Erro ao resetar senha",
+        description: error.message || "Ocorreu um erro desconhecido.",
         variant: "destructive",
       });
     }
@@ -225,6 +256,12 @@ const UsuariosList = () => {
         {temPermissao('usuarios','canview') && (<Button onClick={() => navigate("/usuarios/add")}>
           <Plus className="mr-2 h-4 w-4" /> Novo Usuário
         </Button>)}
+      </div><hr/>
+      <div className="mt-4">
+        <input type="text" placeholder="Pesquisar usuário por nome ou e-mail"
+          value={termoBuscaUsuario} onChange={(e) => setTermoBuscaUsuario(e.target.value.toUpperCase())}
+          className="mb-4 px-4 py-2 border rounded w-full"
+        />
       </div>
 
       <Card>
@@ -233,6 +270,7 @@ const UsuariosList = () => {
           <CardDescription>Usuários cadastrados no sistema</CardDescription>
         </CardHeader>
         <CardContent>
+        <ScrollArea className="h-[340px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -245,7 +283,7 @@ const UsuariosList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {usuarios.map((user) => (
+              {currentUsuarios.map((user) => (
                 <TableRow key={user.userid}>
                   <TableCell className="font-medium">{user.usernome}</TableCell>
                   <TableCell>{user.useremail}</TableCell>
@@ -293,6 +331,14 @@ const UsuariosList = () => {
               )}
             </TableBody>
           </Table>
+          </ScrollArea>
+          {/*Paginação*/}
+          <Pagination
+              totalItems={usuariosFiltrados.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

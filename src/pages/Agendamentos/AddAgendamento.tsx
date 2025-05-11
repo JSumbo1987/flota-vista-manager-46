@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Calendar } from "lucide-react";
+import { ChevronLeft, Calendar, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,31 +29,28 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { Input } from "@/components/ui/input";
 
 const AddAgendamento = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [userId, setUserId] = useState("");
+  const [observacao, setObservacao] = useState("");
   const [viaturaId, setViaturaId] = useState("");
   const [tipoId, setTipoId] = useState("");
   const [dataAgendada, setDataAgendada] = useState<Date | undefined>(new Date());
-  const [status, setStatus] = useState("Pendente");
-
-  const [usuarios, setUsuarios] = useState([]);
   const [viaturas, setViaturas] = useState([]);
   const [tiposAssistencia, setTiposAssistencia] = useState([]);
+  const [matriculaInput, setMatriculaInput] = useState("");
+  const [viaturaEncontrada, setViaturaEncontrada] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [{ data: usuarios }, { data: viaturas }, { data: tipos }] = await Promise.all([
-        supabase.from("tblusuarios").select("userid, usernome"),
+      const [{ data: viaturas }, { data: tipos }] = await Promise.all([
         supabase.from("tblviaturas").select("viaturaid, viaturamarca, viaturamatricula"),
         supabase.from("tbltipoassistencia").select("id, nome"),
       ]);
 
-      if (usuarios) setUsuarios(usuarios);
       if (viaturas) setViaturas(viaturas);
       if (tipos) setTiposAssistencia(tipos);
     };
@@ -61,10 +58,24 @@ const AddAgendamento = () => {
     fetchData();
   }, []);
 
+  const handleMatriculaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.toUpperCase();
+    setMatriculaInput(input);
+  
+    const encontrada = viaturas.find(v => v.viaturamatricula.toUpperCase() === input);
+    if (encontrada) {
+      setViaturaEncontrada(true);
+      setViaturaId(encontrada.viaturaid);
+    } else {
+      setViaturaEncontrada(false);
+      setViaturaId("");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!userId || !viaturaId || !tipoId || !dataAgendada || !(dataAgendada instanceof Date)) {
+    if (!viaturaId || !tipoId || !dataAgendada || !(dataAgendada instanceof Date)) {
       toast({
         title: "Erro de validação",
         description: "Preencha todos os campos obrigatórios.",
@@ -78,11 +89,11 @@ const AddAgendamento = () => {
     try {
       const { error } = await supabase.from("tblagendamentoservico").insert([
         {
-          userid: userId,
+          observacao: observacao,
           viaturaid: viaturaId,
           tipoid: tipoId,
           dataagendada: dataAgendada.toISOString(),
-          status: status,
+          status: 'agendado',
         },
       ]);
 
@@ -125,38 +136,16 @@ const AddAgendamento = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Usuário */}
-              <div className="space-y-2">
-                <Label htmlFor="usuario">Usuário Responsável*</Label>
-                <Select value={userId} onValueChange={setUserId}>
-                  <SelectTrigger id="usuario">
-                    <SelectValue placeholder={usuarios.length === 0 ? "Carregando usuários..." : "Selecione o usuário"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {usuarios.map((u) => (
-                      <SelectItem key={u.userid} value={String(u.userid)}>
-                        {u.usernome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+              
               {/* Viatura */}
               <div className="space-y-2">
-                <Label htmlFor="viatura">Viatura*</Label>
-                <Select value={viaturaId} onValueChange={setViaturaId}>
-                  <SelectTrigger id="viatura">
-                    <SelectValue placeholder={viaturas.length === 0 ? "Carregando viaturas..." : "Selecione uma viatura"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {viaturas.map((v) => (
-                      <SelectItem key={v.viaturaid} value={String(v.viaturaid)}>
-                        {v.viaturamarca} ({v.viaturamatricula})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="matricula">Matrícula da Viatura*</Label>
+                <div className="relative">
+                  <Input id="matricula" value={matriculaInput} onChange={handleMatriculaChange}
+                  placeholder="Digite a matrícula (ex: AB-12-CD)" required/>
+                  {matriculaInput !== "" && (viaturaEncontrada ? ( <CheckCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500" />)
+                  :(<AlertCircle className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500" />))}
+                </div>
               </div>
 
               {/* Tipo de Serviço */}
@@ -200,19 +189,12 @@ const AddAgendamento = () => {
                 </Popover>
               </div>
 
-              {/* Status */}
+              {/* Usuário */}
               <div className="space-y-2">
-                <Label htmlFor="status">Estado</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger id="status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Pendente">Pendente</SelectItem>
-                    <SelectItem value="Concluído">Concluído</SelectItem>
-                    <SelectItem value="Cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="observacao">Observação</Label>
+                <Input id="observacao" type="text" value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                  placeholder="Digite a observação"/>
               </div>
             </div>
           </CardContent>

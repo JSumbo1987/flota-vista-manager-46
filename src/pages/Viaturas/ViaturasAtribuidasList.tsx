@@ -24,6 +24,8 @@ import { ChevronDown, EyeIcon, Edit, Trash, Car, ChevronLeft } from "lucide-reac
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissao } from "@/hooks/usePermissao";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ListaViaturasAtribuidas = () => {
   const { temPermissao } = usePermissao();  
@@ -33,37 +35,45 @@ const ListaViaturasAtribuidas = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentViaturasAtribuidas = viaturasAtribuidas.slice(indexOfFirstItem, indexOfLastItem);
+  //Fim paginação
+
   useEffect(() => {
-    const fetchViaturasAtribuidas = async () => {
-      const { data, error } = await supabase
-        .from("tblfuncionarioviatura")
-        .select(`*,
-          tblviaturas:viaturaid (
-            viaturaid,
-            viaturamatricula,
-            viaturamarca,
-            viaturamodelo,
-            viaturacor,
-            viaturaanofabrica,
-            tblviaturatipo ( viaturatipo ),
-            tblviaturacategoria ( viaturacategoria )
-          ),
-          tblfuncionarios:funcionarioid (
-            funcionarioid,
-            funcionarionome
-          )
-        `);
-
-      if (error) {
-        console.error("Erro ao buscar viaturas atribuídas:", error);
-        return;
-      }
-
-      setViaturasAtribuidas(data);
-    };
-
     fetchViaturasAtribuidas();
   }, []);
+
+  const fetchViaturasAtribuidas = async () => {
+    const { data, error } = await supabase
+      .from("tblfuncionarioviatura")
+      .select(`*,
+        tblviaturas:viaturaid (
+          viaturaid,
+          viaturamatricula,
+          viaturamarca,
+          viaturamodelo,
+          viaturacor,
+          viaturaanofabrica,
+          tblviaturatipo ( viaturatipo ),
+          tblviaturacategoria ( viaturacategoria )
+        ),
+        tblfuncionarios:funcionarioid (
+          funcionarioid,
+          funcionarionome
+        )
+      `);
+
+    if (error) {
+      console.error("Erro ao buscar viaturas atribuídas:", error);
+      return;
+    }
+
+    setViaturasAtribuidas(data);
+  };
 
   const handleDelete = (viaturaid: number) => {
     setAtribuicaoToDelete(viaturaid);
@@ -79,6 +89,7 @@ const ListaViaturasAtribuidas = () => {
       toast({ title: "Erro ao excluir", description: error.message });
     } else {
       toast({ title: "Atribuição excluída", description: `Atribuição removido com sucesso.` });
+      fetchViaturasAtribuidas();
       setViaturasAtribuidas((prev) => prev.filter((c) => c.id !== atribuicaoToDelete)); // atualiza local
       setAtribuicaoToDelete(null);
       setShowDeleteDialog(false);
@@ -104,6 +115,7 @@ const ListaViaturasAtribuidas = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+      <ScrollArea className="h-[350px]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -118,7 +130,7 @@ const ListaViaturasAtribuidas = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {viaturasAtribuidas.map((item) => (
+            {currentViaturasAtribuidas.map((item) => (
               <TableRow key={item.tblviaturas?.viaturaid}>
                 <TableCell>
                   {item.tblviaturas?.viaturamarca}{" "}
@@ -159,6 +171,14 @@ const ListaViaturasAtribuidas = () => {
             )}
           </TableBody>
         </Table>
+        </ScrollArea>
+        {/*Paginação*/}
+        <Pagination
+            totalItems={viaturasAtribuidas.length}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+        />
       </CardContent>
     </Card>
 

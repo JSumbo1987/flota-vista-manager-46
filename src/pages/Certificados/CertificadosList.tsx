@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, Edit, Trash, Plus, ChevronDown, FileCheck } from "lucide-react";
+import { EyeIcon, Edit, Trash, Plus, ChevronDown, FileCheck, Filter } from "lucide-react";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle
 } from "@/components/ui/card";
@@ -19,6 +19,10 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { usePermissao } from "@/hooks/usePermissao";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 interface Certificado {
   id: string;
   numerocertificado: string;
@@ -31,7 +35,7 @@ interface Certificado {
     viaturamarca: string; 
   };
   entidadeEmissora: string;
-  status: "válido" | "a_vencer" | "expirado";
+  status: "válido" | "a_vencer" | "vencido";
   copiadocertificado?: string; // novo campo
 }
 
@@ -51,7 +55,7 @@ const getStatusClass = (status: string) => {
         return "bg-green-100 text-green-800 border-green-200";
         case "a_vencer":
           return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "expirado":
+      case "vencido":
         return "bg-red-100 text-red-800 border-red-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
@@ -61,7 +65,7 @@ const getStatusClass = (status: string) => {
   const fetchSignedUrl = async (path: string) => {
     if (!path) return;
     const { data, error } = await supabase.storage
-    .from('certificados')
+    .from('documentos')
       .createSignedUrl(path, 60);
       
     if (error) {
@@ -156,6 +160,25 @@ const CertificadosList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [certificadoToDelete, setCertificadoToDelete] = useState<string | null>(null);
   const { temPermissao } = usePermissao(); 
+  const [filtroMatricula, setFiltroMatricula] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos"); // 'todos', 'vencidos', 'avencer'
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const certificadoFiltradas = certificados.filter((certificado) => {
+    const matchMatriculaOuNumero =
+      certificado.tblviaturas.viaturamatricula.toLowerCase().includes(filtroMatricula.toLowerCase()) ||
+      certificado.numerocertificado.toLowerCase().includes(filtroMatricula.toLowerCase());
+  
+    const matchStatus =
+      statusFilter === "todos" || certificado.status === statusFilter;
+  
+    return matchMatriculaOuNumero && matchStatus;
+  });  
+  const currentCertificados = certificadoFiltradas.slice(indexOfFirstItem, indexOfLastItem);
+  //Fim paginação
   
   //Listar Todos os Certificados Cadastrados.
   const fetchCertificados = async () => {
@@ -215,7 +238,7 @@ const CertificadosList = () => {
       // 3. Se existir arquivo, deletar do storage
       if (caminhoArquivo) {
         const { error: storageError } = await supabase.storage
-          .from("certificados")
+          .from("documentos")
           .remove([caminhoArquivo]);
   
         if (storageError) {
@@ -251,8 +274,8 @@ const CertificadosList = () => {
         return <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Válido</Badge>;
       case "a_vencer":
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">A vencer</Badge>;
-      case "expirado":
-        return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Expirado</Badge>;
+      case "vencido":
+        return <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">Vencido</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -273,6 +296,28 @@ const CertificadosList = () => {
           <Plus className="mr-2 h-4 w-4" /> Novo Certificado
         </Button>)}
       </div>
+      <hr/>
+      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-4">
+        <input type="text" placeholder="Pesquisar por matrícula ou número do certificado."
+          value={filtroMatricula} onChange={(e) => setFiltroMatricula(e.target.value.toUpperCase())}
+          className="w-full md:w-[400px] px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+
+        <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
+            <SelectTrigger className="w-[180px]">
+              <div className="flex items-center">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Filtrar" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="vencido">Vencidos</SelectItem>
+              <SelectItem value="a_vencer">A vencer</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -280,25 +325,26 @@ const CertificadosList = () => {
           <CardDescription>Certificados de inspeção registrados no sistema</CardDescription>
         </CardHeader>
         <CardContent>
+        <ScrollArea className="h-[350px]">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Número</TableHead>
-                <TableHead>Viatura</TableHead>
                 <TableHead>Centro de Inspeção</TableHead>
-                <TableHead>Data de Emissão</TableHead>
+                <TableHead>Viatura</TableHead>
+                <TableHead>Matrícula</TableHead>
                 <TableHead>Proxima Inspeção</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {certificados.map((certificado) => (
+              {currentCertificados.map((certificado) => (
                 <TableRow key={certificado.id}>
                   <TableCell className="font-medium">{certificado.numerocertificado}</TableCell>
-                  <TableCell>{certificado.tblviaturas?.viaturamarca}</TableCell>
                   <TableCell>{certificado.centroinspeccao}</TableCell>
-                  <TableCell>{new Date(certificado.datahorainspeccao).toLocaleDateString("pt-PT")}</TableCell>
+                  <TableCell>{certificado.tblviaturas?.viaturamarca} {certificado.tblviaturas?.viaturamodelo}</TableCell>
+                  <TableCell>{certificado.tblviaturas?.viaturamatricula}</TableCell>
                   <TableCell>{new Date(certificado.proximainspeccao).toLocaleDateString("pt-PT")}</TableCell>
                   <TableCell>{getStatusBadge(certificado.status)}</TableCell>
                   <TableCell className="text-right">
@@ -326,7 +372,7 @@ const CertificadosList = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {certificados.length === 0 && (
+              {currentCertificados.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center">
                     Nenhum certificado de inspeção encontrado.
@@ -335,6 +381,14 @@ const CertificadosList = () => {
               )}
             </TableBody>
           </Table>
+          </ScrollArea>
+          {/*Paginação*/}
+          <Pagination
+              totalItems={certificadoFiltradas.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

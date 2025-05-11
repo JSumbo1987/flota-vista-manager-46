@@ -17,6 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { usePermissao } from "@/hooks/usePermissao";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Funcionario {
   funcionarioid: number;
@@ -133,7 +135,21 @@ const FuncionariosList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [funcionarioToDelete, setFuncionarioToDelete] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-   const { temPermissao } = usePermissao(); 
+  const { temPermissao } = usePermissao(); 
+  const [termoBuscaFuncionario, setTermoBuscaFuncionario] = useState("");
+
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  //Buscar Funcionários pelo nome
+  const funcionariosFiltrados = funcionarios.filter(func =>
+    func.funcionarionome.toLowerCase().includes(termoBuscaFuncionario.toLowerCase())
+  );
+  const currentFuncionarios = funcionariosFiltrados.slice(indexOfFirstItem, indexOfLastItem);
+  //Fim paginação
+  
 
   useEffect(() => {
     const fetchFuncionarios = async () => {
@@ -274,6 +290,12 @@ const FuncionariosList = () => {
           <Plus className="mr-2 h-4 w-4" /> Novo Funcionário
         </Button>)}
       </div>
+      <hr/>
+      <div className="mt-4">
+        <input type="text" placeholder="Pesquisar funcionário pelo nome"
+          value={termoBuscaFuncionario} onChange={(e) => setTermoBuscaFuncionario(e.target.value.toUpperCase())}
+          className="mb-4 px-4 py-2 border rounded w-full"/>
+      </div>
 
       <Card>
         <CardHeader>
@@ -281,6 +303,7 @@ const FuncionariosList = () => {
           <CardDescription>Todos os funcionários cadastrados</CardDescription>
         </CardHeader>
         <CardContent>
+        <ScrollArea className="h-[350px]">
           {loading ? (
             <p>Carregando funcionários...</p>
           ) : (
@@ -298,7 +321,7 @@ const FuncionariosList = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {funcionarios.map((f) => (
+                {currentFuncionarios.map((f) => (
                   <TableRow key={f.funcionarioid}>
                     <TableCell>{f.funcionarionome}</TableCell>
                     <TableCell>{f.nacionalidade}</TableCell>
@@ -344,6 +367,14 @@ const FuncionariosList = () => {
               </TableBody>
             </Table>
           )}
+          </ScrollArea>
+          {/*Paginação*/}
+          <Pagination
+              totalItems={funcionariosFiltrados.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

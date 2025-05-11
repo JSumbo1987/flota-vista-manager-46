@@ -13,6 +13,7 @@ const EditCertificado = () => {
   const [certificado, setCertificado] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [matriculaViatura, setMatriculaViatura] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCertificado = async () => {
@@ -38,6 +39,19 @@ const EditCertificado = () => {
             arquivoExistente: data.copiadocertificado || "",
             custoCertificado: data.custocertificado ? data.custocertificado.toString() : "",
           });
+
+          // Buscar matrícula da viatura
+          const { data: viaturaData, error: viaturaError } = await supabase
+          .from("tblviaturas")
+          .select("viaturamatricula")
+          .eq("viaturaid", data.viaturaid)
+          .single();
+
+          if (viaturaError) {
+            console.error("Erro ao buscar matrícula da viatura:", viaturaError);
+          } else {
+            setMatriculaViatura(viaturaData?.viaturamatricula || null);
+          }
           
           // Fetch signed URL if there's a file
           if (data.copiadocertificado) {
@@ -63,7 +77,7 @@ const EditCertificado = () => {
     if (!path) return;
     
     const { data, error } = await supabase.storage
-      .from('certificados')
+      .from('documentos')
       .createSignedUrl(path, 60);
       
     if (error) {
@@ -99,6 +113,7 @@ const EditCertificado = () => {
           onSuccess={handleSuccess}
           signedUrl={signedUrl}
           isEditing
+          matriculaViatura={matriculaViatura}
         />
       )}
     </div>

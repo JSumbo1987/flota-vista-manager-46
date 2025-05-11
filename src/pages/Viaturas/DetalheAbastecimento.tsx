@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabaseClient";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const DetalhesAbastecimento = () => {
   const navigate = useNavigate();
@@ -93,6 +94,7 @@ const DetalhesAbastecimento = () => {
           <CardDescription>Histórico de abastecimentos realizados</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+        <ScrollArea className="h-[225px]">
           {abastecimentos.length === 0 ? (
             <div className="text-center text-muted-foreground">Nenhum abastecimento registrado para esta viatura.</div>
           ) : (
@@ -129,6 +131,7 @@ const DetalhesAbastecimento = () => {
               </div>
             ))
           )}
+        </ScrollArea>
         </CardContent>
       </Card>
     </div>

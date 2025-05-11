@@ -72,7 +72,8 @@ const AtribuirViatura = () => {
     const { data, error } = await supabase
       .from("tblviaturas")
       .select("*")
-      .ilike("viaturamatricula", `%${matricula}%`);
+      .ilike("viaturamatricula", `%${matricula}%`)
+      .limit(3);
   
     if (error) {
       setViaturasEncontradas([]);
@@ -174,8 +175,6 @@ const AtribuirViatura = () => {
     }
   };
   
-  
-
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -232,8 +231,10 @@ const AtribuirViatura = () => {
                     <Label>Pesquisar Viatura</Label>
                     <Input
                       placeholder="Digite a matrícula"
-                      onChange={(e) => pesquisarViaturaPorMatricula(e.target.value)}
+                      onChange={(e) => pesquisarViaturaPorMatricula(e.target.value.toUpperCase())}
                       disabled={funcionarioJaTemViatura}
+                      maxLength={12}
+                      className="uppercase"
                     /><br/>
                     {!funcionarioJaTemViatura && viaturasEncontradas.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

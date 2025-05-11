@@ -33,7 +33,7 @@ const NotificacoesSettings = () => {
 
   useEffect(() => {
     if (!usuario) return;
-    
+    console.log(usuario);
     const userId = usuario.userid || usuario.userid;
     if (!userId) return;
 
@@ -84,7 +84,7 @@ const NotificacoesSettings = () => {
   const saveSettings = async () => {
     if (!usuario) return;
     
-    const userId = usuario.userid || usuario.id;
+    const userId = usuario.userid || usuario.funcionarioId;
     if (!userId) return;
 
     setIsSaving(true);

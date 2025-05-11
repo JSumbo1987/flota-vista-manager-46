@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, Edit, Trash, Plus, ChevronDown, Car, Fuel } from "lucide-react";
+import { EyeIcon, Edit, Trash, Plus, ChevronDown, Car, Fuel, FolderCheck } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -31,10 +31,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Filter } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "../Auth/AuthContext";
 import { usePermissao } from "@/hooks/usePermissao";
+import Pagination from "@/components/paginacao/pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ViaturaDetails = ({viatura, onClose }: { viatura: any; onClose: () => void; }) => {
   if (!viatura) return null;
@@ -85,7 +95,40 @@ const ViaturasList = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [viaturaToDelete, setViaturaToDelete] = useState<number | null>(null);
+  const [filtroMatricula, setFiltroMatricula] = useState("");
   const { temPermissao } = usePermissao();  
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("");
+  const [categorias, setCategorias] = useState([]);
+  const [tipos, setTipos] = useState([]);
+
+
+  //Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const [viaturaSelecionado, setViaturaSelecionado] = useState(null);
+  const viaturasFiltradas = viaturas.filter((viatura) => {
+    const temMatricula = filtroMatricula.trim() !== "";
+    const temCategoria = filtroCategoria !== "";
+    const temTipo = filtroTipo !== "";
+  
+    if (temMatricula) {
+      return viatura.viaturamatricula
+        .toLowerCase()
+        .includes(filtroMatricula.toLowerCase());
+    }
+    
+    const correspondeCategoria = !temCategoria || viatura.viaturacategoriaid === parseInt(filtroCategoria);
+    const correspondeTipo = !temTipo || viatura.viaturatipoid === parseInt(filtroTipo);
+  
+    return correspondeCategoria && correspondeTipo;
+  });
+  
+  
+  const currentViaturas = viaturasFiltradas.slice(indexOfFirstItem, indexOfLastItem);
+  //Fim paginação
 
   useEffect(() => {
     const fetchViaturas = async () => {
@@ -107,29 +150,51 @@ const ViaturasList = () => {
     fetchViaturas();
   }, [toast]);
 
-  const handleDelete = async(id: number) => {
-    
-    const { error } = await supabase.from("tblviaturas").delete().eq("viaturaid", id);
-    
-    if(error){
-      toast({
-        title: "Erro ao excluir viatura.",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-    setViaturaToDelete(id);
+  useEffect(() => {
+    const fetchCategoriasETipos = async () => {
+      const [{ data: categoriasData }, { data: tiposData }] = await Promise.all([
+        supabase.from("tblviaturacategoria").select("id, viaturacategoria"),
+        supabase.from("tblviaturatipo").select("id, viaturatipo")
+      ]);
+      setCategorias(categoriasData || []);
+      setTipos(tiposData || []);
+    };
+  
+    fetchCategoriasETipos();
+  }, []);  
+
+  const handleDeleteClick = (viatura) =>{
+    setViaturaSelecionado(viatura);
     setShowDeleteDialog(true);
-    setViaturas((prev) => prev.filter((v) => v.viaturaid !== id));
   };
 
-  const confirmDelete = () => {
-    toast({
-      title: "Viatura excluída",
-      description: `A viatura foi excluída com sucesso.`,
-    });
-    setShowDeleteDialog(false);
+  const handleDelete = async() => {
+    if(!viaturaSelecionado) return
+
+    try{
+      const { error } = await supabase.from("tblviaturas").delete().eq("viaturaid", viaturaSelecionado.viaturaid);
+      if(error){
+        toast({
+          title: "Erro ao excluir viatura.",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      };
+
+      toast({
+        title: "Viatura excluído",
+        description: `A Viatura foi excluída com sucesso.`,
+      });
+      
+      setViaturas((prev) => prev.filter((v) => v.viaturaid !== viaturaSelecionado.viaturaid));
+    }catch(error){
+      console.error("Erro ao excluir viatura:", error);
+      toast({ title:"Erro ao Excluir", description: "Erro ao excluir a viatura, verifique a console.", variant: "destructive" });
+    }finally{
+      setViaturaSelecionado(null);
+      setShowDeleteDialog(false);
+    }
   };
 
   const viewDetails = (viatura) => {
@@ -160,17 +225,60 @@ const ViaturasList = () => {
           </Button>)}
         </div>
       </div>
+      <hr/>
+      <div className="mt-4 flex flex-col md:flex-row gap-2">
+        <input type="text" placeholder="Pesquisar por matrícula da viatura" value={filtroMatricula}
+          onChange={(e) => setFiltroMatricula(e.target.value.toUpperCase())}
+          className="w-full md:w-1/3 px-4 py-2 border rounded-md"/>
 
+          <Select value={filtroCategoria} onValueChange={(value) => {
+            setFiltroCategoria(value === "todos" ? "" : value);  setCurrentPage(1);
+          }}>
+          <SelectTrigger className="w-full md:w-1/4">
+            <div className="flex items-center">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Filtrar por Categoria" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as Categorias</SelectItem>
+            {categorias.map((cat) => (
+              <SelectItem key={cat.id} value={String(cat.id)}>
+                {cat.viaturacategoria}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filtroTipo} onValueChange={(value) => {
+            setFiltroTipo(value === "todos" ? "" : value); setCurrentPage(1); }}>
+          <SelectTrigger className="w-full md:w-1/4">
+            <div className="flex items-center">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Filtrar por Tipo" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os Tipos</SelectItem>
+            {tipos.map((tipo) => (
+              <SelectItem key={tipo.id} value={String(tipo.id)}>
+                {tipo.viaturatipo}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Lista de Viaturas</CardTitle>
           <CardDescription>Viaturas registradas no sistema</CardDescription>
         </CardHeader>
         <CardContent>
+          <ScrollArea className="h-[350px]">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Viatura (Marca/Modelo)</TableHead>
+                <TableHead>Viatura</TableHead>
                 <TableHead>Matrícula</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Categoria</TableHead>
@@ -180,7 +288,7 @@ const ViaturasList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {viaturas.map((viatura) => (
+              {currentViaturas.map((viatura) => (
                 <TableRow key={viatura.viaturaid}>
                   <TableCell>{viatura.viaturamarca} {viatura.viaturamodelo}</TableCell>
                   <TableCell>{viatura.viaturamatricula}</TableCell>
@@ -201,11 +309,13 @@ const ViaturasList = () => {
                         {temPermissao("viaturas","canedit") && (<DropdownMenuItem onClick={() => navigate(`/viaturas/edit/${viatura.viaturaid}`)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>)}
                         {temPermissao("viaturas","candelete") && (<DropdownMenuItem
-                          onClick={() => handleDelete(viatura.viaturaid)}
+                          onClick={() => handleDeleteClick(viatura)}
                           className="text-destructive focus:text-destructive">
                             <Trash className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>)}
-                          {temPermissao("viaturas","canview") && (<DropdownMenuItem onClick={() => navigate(`/viaturas/abastecer/detalhe/${viatura.viaturaid}`)}>
+                        {temPermissao("viaturas","canview") && (<DropdownMenuItem onClick={() => navigate(`/viaturas/abastecer/detalhe/${viatura.viaturaid}`)}>
                           <Fuel className="mr-2 h-4 w-4" />Detalhe Abastecimento</DropdownMenuItem>)}
+                        {temPermissao("viaturas","canview") && (<DropdownMenuItem onClick={() => navigate(`/viaturas/documentos/${viatura.viaturaid}`)}>
+                          <FolderCheck className="mr-2 h-4 w-4" />Documentos</DropdownMenuItem>)}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -220,6 +330,15 @@ const ViaturasList = () => {
                 )}
             </TableBody>
           </Table>
+          </ScrollArea>
+          {/*Paginação*/}
+          <Pagination
+              totalItems={viaturasFiltradas.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+          />
+
         </CardContent>
       </Card>
 
@@ -235,7 +354,7 @@ const ViaturasList = () => {
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
+            <Button variant="destructive" onClick={handleDelete}>
               Excluir
             </Button>
           </DialogFooter>
