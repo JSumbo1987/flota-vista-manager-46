@@ -11,7 +11,6 @@ interface PermissionsTableProps {
 
 const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTableProps) => {
 
-  
   return (
     <div className="rounded-md border">
       <Table>
@@ -28,7 +27,7 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
         <TableBody>
           {menuPermissions.map((menu) => (
             <TableRow key={menu.id}>
-              <TableCell className="font-medium">{menu.nomeMenu}</TableCell>
+              <TableCell className="font-medium">{menu.nome}</TableCell>
               
               <TableCell className="text-center">
                 <Checkbox
@@ -37,7 +36,7 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
                   onCheckedChange={(checked) => 
                     onPermissionChange(menu.id, 'canView', !!checked)
                   }
-                  aria-label={`Permissão para visualizar ${menu.nomeMenu}`}
+                  aria-label={`Permissão para visualizar ${menu.nome}`}
                 />
               </TableCell>
               
@@ -48,7 +47,7 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
                   onCheckedChange={(checked) => 
                     onPermissionChange(menu.id, 'canInsert', !!checked)
                   }
-                  aria-label={`Permissão para inserir em ${menu.nomeMenu}`}
+                  aria-label={`Permissão para inserir em ${menu.nome}`}
                 />
               </TableCell>
               
@@ -59,7 +58,7 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
                   onCheckedChange={(checked) => 
                     onPermissionChange(menu.id, 'canEdit', !!checked)
                   }
-                  aria-label={`Permissão para editar ${menu.nomeMenu}`}
+                  aria-label={`Permissão para editar ${menu.nome}`}
                 />
               </TableCell>
               
@@ -70,7 +69,7 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
                   onCheckedChange={(checked) => 
                     onPermissionChange(menu.id, 'canDelete', !!checked)
                   }
-                  aria-label={`Permissão para excluir ${menu.nomeMenu}`}
+                  aria-label={`Permissão para excluir ${menu.nome}`}
                 />
               </TableCell>
               
@@ -81,7 +80,7 @@ const PermissionsTable = ({ menuPermissions, onPermissionChange }: PermissionsTa
                   onCheckedChange={(checked) => 
                     onPermissionChange(menu.id, 'canTodos', !!checked)
                   }
-                  aria-label={`Permissão para Todos ${menu.nomeMenu}`}
+                  aria-label={`Permissão para Todos ${menu.nome}`}
                 />
               </TableCell>
             </TableRow>

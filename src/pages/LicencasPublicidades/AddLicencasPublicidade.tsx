@@ -167,7 +167,7 @@ const AddLicencaPublicidade = () => {
                 <Input
                   id="licencaNumero"
                   value={licencaNumero}
-                  onChange={(e) => setLicencaNumero(e.target.value)}
+                  onChange={(e) => setLicencaNumero(e.target.value.toUpperCase())}
                   placeholder="Ex: PUB-2024-001"
                   required
                 />

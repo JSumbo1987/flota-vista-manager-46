@@ -31,12 +31,13 @@ interface Usuario {
   userid: string;
   usernome: string;
   useremail: string;
-  tipoid: number;
-  grupoid: number;
+  tipousuarioid: number;
+  grupousuarioid: number;
   issuperusuario: boolean;
   estado: string;
   useremailconfirmed: boolean;
   isfastlogin: number;
+  userreceberemail: boolean,
 }
 
 const EditUsuario = () => {
@@ -45,8 +46,9 @@ const EditUsuario = () => {
   const { toast } = useToast();
 
   const [form, setForm] = useState<Usuario>({
-    userid: "", usernome: "", useremail: "", tipoid: 0, grupoid: 0,
-    issuperusuario: false, estado: "activo", useremailconfirmed: false, isfastlogin: 0
+    userid: "", usernome: "", useremail: "", tipousuarioid: 0, grupousuarioid: 0,
+    issuperusuario: false, estado: "activo", useremailconfirmed: false, isfastlogin: 0,
+    userreceberemail: false,
   });
 
   const [tiposUsuario, setTiposUsuario] = useState<TipoUsuario[]>([]);
@@ -56,42 +58,74 @@ const EditUsuario = () => {
   const [anyOtherSuperUser, setAnyOtherSuperUser] = useState(false);
   const { erro: senhaErro, validar: validarSenha } = useSenhaValidator();
 
+  useEffect(()=>{
+    fetchTiposEGruposUsuarios();
+  },[]);
+
+  const fetchTiposEGruposUsuarios = async () => {
+    try {
+      const [tiposRes, gruposRes] = await Promise.all([
+        supabase.from("tbltipousuarios").select("*"),
+        supabase.from("tblgrupousuarios").select("*")
+      ]);
+  
+      if (tiposRes.error || gruposRes.error) {
+        throw new Error(
+          tiposRes.error?.message || gruposRes.error?.message || "Erro ao buscar tipos e grupos"
+        );
+      }
+  
+      return {
+        tipos: tiposRes.data || [],
+        grupos: gruposRes.data || [],
+      };
+    } catch (error) {
+      throw new Error(`Erro ao buscar tipos e grupos: ${String(error)}`);
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
     fetchUsuarioData(id);
   }, [id]);
 
   const fetchUsuarioData = async (userId: string) => {
-    try {
-      setIsLoading(true);
-      const [usuarioRes, tiposRes, gruposRes] = await Promise.all([
-        supabase.from("tblusuarios").select("*").eq("userid", userId).single(),
-        supabase.from("tbltipousuarios").select("*"),
-        supabase.from("tblgrupousuarios").select("*")
-      ]);
+  try {
+    setIsLoading(true);
 
-      if (usuarioRes.error || !usuarioRes.data) {
-        throw new Error(usuarioRes.error?.message || "Usuário não encontrado");
-      }
-console.log(usuarioRes.data);
-      setTiposUsuario(tiposRes.data || []);
-      setGruposUsuario(gruposRes.data || []);
-      setForm({ ...usuarioRes.data, estado: usuarioRes.data.estado ?? "activo" });
+    const { tipos, grupos } = await fetchTiposEGruposUsuarios();
 
-      if (usuarioRes.data.issuperusuario) {
-        const { count } = await supabase
-          .from("tblusuarios")
-          .select("*", { count: "exact", head: true })
-          .eq("issuperusuario", true)
-          .neq("userid", userId);
-        setAnyOtherSuperUser((count || 0) > 0);
-      }
-    } catch (error) {
-      toast({ title: "Erro ao carregar dados", description: String(error), variant: "destructive" });
-      navigate("/usuarios");
-    } finally {
-      setIsLoading(false);
+    setTiposUsuario(tipos);
+    setGruposUsuario(grupos);
+
+    
+    const { data: usuarioData, error: usuarioError } = await supabase
+    .from("tblusuarios")
+    .select("*")
+    .eq("userid", userId)
+    .single();
+    
+    if (usuarioError || !usuarioData) {
+      throw new Error(usuarioError?.message || "Usuário não encontrado");
     }
+
+    setForm({ ...usuarioData, estado: usuarioData.estado ?? "activo" });
+
+    if (usuarioData.issuperusuario) {
+      const { count } = await supabase
+        .from("tblusuarios")
+        .select("*", { count: "exact", head: true })
+        .eq("issuperusuario", true)
+        .neq("userid", userId);
+
+      setAnyOtherSuperUser((count || 0) > 0);
+    }
+  } catch (error) {
+    toast({ title: "Erro ao carregar dados", description: String(error), variant: "destructive" });
+    navigate("/usuarios");
+  } finally {
+    setIsLoading(false);
+  }
   };
 
   const verificarDuplicidadeEmail = async (email: string) => {
@@ -116,7 +150,8 @@ console.log(usuarioRes.data);
       tipoid: form.tipoid,
       grupoid: form.grupoid,
       estado: form.estado,
-      issuperusuario: form.issuperusuario
+      issuperusuario: form.issuperusuario,
+      userreceberemail:form.userreceberemail
     }).eq("userid", id);
 
     if (error) throw error;
@@ -141,6 +176,10 @@ console.log(usuarioRes.data);
   const handleChange = (name: keyof Usuario, value: any) => {
     setForm((prev) => ({ ...prev, [name]: value }));
     //if (name === "userpassword") { validarSenha(value); }
+  };
+
+  const handleSwitchChangeNotificacao = (checked: boolean) => {
+    setForm((prev) => ({ ...prev, usuariorecebernotificacao: checked }));
   };
 
   if (isLoading) {
@@ -192,8 +231,9 @@ console.log(usuarioRes.data);
 
             <div className="space-y-2">
               <Label>Tipo de Usuário*</Label>
-              <Select value={form.tipoid?.toString()} onValueChange={(v) => handleChange("tipoid", parseInt(v))}>
-                <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+              <Select value={form.tipousuarioid?.toString() ?? ""} 
+                onValueChange={(v) => handleChange("tipousuarioid", parseInt(v))}>
+                <SelectTrigger><SelectValue placeholder={tiposUsuario.length === 0 ? "Carregando..." : "Selecione o tipo"} /></SelectTrigger>
                 <SelectContent>
                   {tiposUsuario.map((tipo) => (
                     <SelectItem key={tipo.tipoid} value={tipo.tipoid.toString()}>{tipo.descricaotipo}</SelectItem>
@@ -204,11 +244,18 @@ console.log(usuarioRes.data);
 
             <div className="space-y-2">
               <Label>Grupo de Usuário*</Label>
-              <Select value={form.grupoid?.toString()} onValueChange={(v) => handleChange("grupoid", parseInt(v))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <Select
+                value={form.grupousuarioid?.toString() ?? ""}
+                onValueChange={(v) => handleChange("grupousuarioid", parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={gruposUsuario.length === 0 ? "Carregando..." : "Selecione o grupo"} />
+                </SelectTrigger>
                 <SelectContent>
                   {gruposUsuario.map((grupo) => (
-                    <SelectItem key={grupo.grupoid} value={grupo.grupoid.toString()}>{grupo.gruponame}</SelectItem>
+                    <SelectItem key={grupo.grupoid} value={grupo.grupoid.toString()}>
+                      {grupo.gruponame}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -225,7 +272,7 @@ console.log(usuarioRes.data);
                 </SelectContent>
               </Select>
             </div>
-
+            {!setAnyOtherSuperUser && (
             <div className="col-span-2 flex items-center space-x-2">
               <Switch
                 id="issuperusuario"
@@ -237,6 +284,14 @@ console.log(usuarioRes.data);
               {form.issuperusuario && !anyOtherSuperUser && (
                 <span className="text-sm text-muted-foreground ml-2">(Este é o único Super Usuário)</span>
               )}
+            </div>)}
+            <div className="col-span-2 flex items-center space-x-2">
+              <Switch 
+                id="userreceberemail"
+                checked={form.userreceberemail}
+                onCheckedChange={handleSwitchChangeNotificacao}
+              />
+              <Label htmlFor="userreceberemail">Receber Notificação por e-mail?</Label>
             </div>
           </CardContent>
 

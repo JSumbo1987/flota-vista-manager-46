@@ -33,6 +33,7 @@ const AddUsuario = () => {
     tipoid: "",
     grupoid: "",
     issuperusuario: false,
+    userreceberemail: false,
   });
 
   const [tiposUsuario, setTiposUsuario] = useState<TipoUsuario[]>([]);
@@ -90,6 +91,10 @@ const AddUsuario = () => {
     setForm((prev) => ({ ...prev, issuperusuario: checked }));
   };
 
+  const handleSwitchChangeNotificacao = (checked: boolean) => {
+    setForm((prev) => ({ ...prev, usuariorecebernotificacao: checked }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -123,6 +128,7 @@ const AddUsuario = () => {
         useremailconfirmed: false,
         isfastlogin: 0,
         issuperusuario: form.issuperusuario,
+        userreceberemail: form.userreceberemail
       });
 
       if (error) throw error;
@@ -240,6 +246,14 @@ const AddUsuario = () => {
                 <Label htmlFor="issuperusuario">Super Usuário</Label>
               </div>
             )}
+            <div className="col-span-2 flex items-center space-x-2">
+              <Switch 
+                id="userreceberemail"
+                checked={form.userreceberemail}
+                onCheckedChange={handleSwitchChangeNotificacao}
+              />
+              <Label htmlFor="userreceberemail">Receber Notificação por e-mail?</Label>
+            </div>
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button type="button" variant="outline" onClick={() => navigate("/usuarios")}>

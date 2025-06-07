@@ -145,7 +145,7 @@ const AddViatura = () => {
                 <div className="col-span-2 flex gap-4">
                   <div className="flex-1 space-y-2">
                     <Label>Modelo*</Label>
-                    <Input value={viaturaModelo} onChange={(e) => setModelo(e.target.value.toUpperCase())} required maxLength={15}/>
+                    <Input value={viaturaModelo} onChange={(e) => setModelo(e.target.value.toUpperCase())} required maxLength={20}/>
                   </div>
 
                   <div className="flex-1 space-y-2">

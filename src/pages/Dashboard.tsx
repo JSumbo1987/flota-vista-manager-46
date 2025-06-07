@@ -182,20 +182,34 @@ const Dashboard = () => {
         }));
 
         setProximosAgendamentos(proximos);
-      }
+      };
 
+      // Função utilitária para formatar data no padrão YYYY-MM-DD (sem UTC)
+      function formatDateLocal(date: Date | string) {
+        const realDate = new Date(date);
+        return realDate.toLocaleDateString('sv-SE'); // Garante YYYY-MM-DD em fuso local
+      }
 
       // Buscar licenças a vencer (exemplo para tbllicencatransportacao)
       const hojes = new Date();
       const trintaDiasDepois = new Date();
       trintaDiasDepois.setDate(hojes.getDate() + 30);
+      
+      // Formatos string para Supabase
+      const dataInicio = formatDateLocal(hojes);
+      const dataFim = formatDateLocal(trintaDiasDepois);
+      console.log("Data de 30 dias: ", dataFim);// Estamos a verificar os 30dias depois e os erros permanecem
+      //parei por aqui e deve-se verificar as datas no backend e na base de dados continua a retornar os 11 registos.
 
       const { data: licencasData, error: licencasError } = await supabase
         .from("tbllicencatransportacao")
         .select("*")
-        .gte("datavencimento", hojes.toISOString().slice(0, 10))
-        .lte("datavencimento", trintaDiasDepois.toISOString().slice(0, 10))
+        .gte("datavencimento", dataInicio)
+        .lte("datavencimento", dataFim)
         .order("datavencimento", { ascending: true });
+
+      console.log("Total de licenças de Transporte encontradas:", licencasData?.length || 0);
+      licencasData?.forEach(l => console.log("Data de vencimento:", l.datavencimento));
 
       if (licencasError) {
         console.error("Erro ao buscar licenças a vencer:", licencasError);

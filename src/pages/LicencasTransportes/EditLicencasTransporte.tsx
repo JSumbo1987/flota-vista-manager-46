@@ -262,7 +262,7 @@ const EditLicencaTransporte = () => {
                 <Input
                   id="licencanumero"
                   value={licencaNumero}
-                  onChange={(e) => setLicencaNumero(e.target.value)}
+                  onChange={(e) => setLicencaNumero(e.target.value.toUpperCase())}
                   placeholder="Ex: LT-2023-12345"
                   required
                 />
@@ -334,7 +334,7 @@ const EditLicencaTransporte = () => {
                 <Input
                   id="proprietario"
                   value={proprietario}
-                  onChange={(e) => setProprietario(e.target.value)}
+                  onChange={(e) => setProprietario(e.target.value.toUpperCase())}
                   required
                 />
               </div>

@@ -225,7 +225,7 @@ const CertificadoForm = ({
               <Input
                 id="numeroCertificado"
                 value={numeroCertificado}
-                onChange={(e) => setNumeroCertificado(e.target.value)}
+                onChange={(e) => setNumeroCertificado(e.target.value.toUpperCase())}
                 required
               />
             </div>
@@ -249,7 +249,7 @@ const CertificadoForm = ({
               <Input
                 id="centro"
                 value={centroInspeccao}
-                onChange={(e) => setCentroInspeccao(e.target.value)}
+                onChange={(e) => setCentroInspeccao(e.target.value.toUpperCase())}
                 required
               />
             </div>
@@ -258,7 +258,7 @@ const CertificadoForm = ({
               <Input
                 id="quadro"
                 value={numeroDoQuadro}
-                onChange={(e) => setNumeroDoQuadro(e.target.value)}
+                onChange={(e) => setNumeroDoQuadro(e.target.value.toUpperCase())}
                 required
               />
             </div>
@@ -267,7 +267,7 @@ const CertificadoForm = ({
               <Input
                 id="km"
                 value={quilometragem}
-                onChange={(e) => setQuilometragem(e.target.value)}
+                onChange={(e) => setQuilometragem(e.target.value.toUpperCase())}
                 required
               />
             </div>

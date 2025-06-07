@@ -71,9 +71,7 @@ const LicencaTransporteList = () => {
     const fetchLicencas = async () => {
       const { data, error } = await supabase
         .from("tbllicencatransportacao")
-        .select(`*,
-          tblviaturas:viaturaid ( viaturaid, viaturamarca, viaturamodelo, viaturamatricula )
-        `);
+        .select(`*, tblviaturas:viaturaid ( viaturaid, viaturamarca, viaturamodelo, viaturamatricula )`);
 
       if (error) {
         console.error("Erro ao buscar licenças de transporte:", error);

@@ -165,7 +165,7 @@ const UsuariosList = () => {
       // Atualize com o campo real da senha, se estiver criptografando, aplique hash aqui
       const { error } = await supabase
         .from("tblusuarios")
-        .update({ usersenha: senhaHash }) // ou usersenha: hash(novaSenha) se for necessário
+        .update({ userpassword: senhaHash }) // ou usersenha: hash(novaSenha) se for necessário
         .eq("userid", user.userid);
 
       if (error) throw error;
@@ -175,7 +175,7 @@ const UsuariosList = () => {
 
       toast({
         title: "Senha resetada com sucesso",
-        description: `A nova senha foi gerada e enviada para o e-mail do usuário (simulado).`,
+        description: `A nova senha foi gerada e enviada para o seu e-mail.`,
       });
     } catch (error) {
       toast({
@@ -298,8 +298,8 @@ const UsuariosList = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {temPermissao('usuarios','canview') && (<DropdownMenuItem onClick={() => viewDetails(user)}>
-                          <EyeIcon className="mr-2 h-4 w-4" /> Ver detalhes
+                        {temPermissao('usuarios','canview') && (<DropdownMenuItem onClick={() => navigate(`/perfil/${user.userid}`)}>
+                          <EyeIcon className="mr-2 h-4 w-4" /> Ver Perfíl
                         </DropdownMenuItem>)}
                         {temPermissao('usuarios','canedit') && (<DropdownMenuItem onClick={() => openChangePass(user)}>
                           <Key className="mr-2 h-4 w-4" /> Alterar senha
@@ -310,7 +310,7 @@ const UsuariosList = () => {
                         {temPermissao('usuarios','canedit') && (<DropdownMenuItem onClick={() => navigate(`/usuarios/edit/${user.userid}`)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>)}
-                        {temPermissao('usuarios','caninsert') && (<DropdownMenuItem onClick={() => navigate(`/usuarios/permissions/${user.userid}`)}>
+                        {temPermissao('usuarios','caninsert') && (<DropdownMenuItem onClick={() => navigate(`/usuarios/permissions/${user.userid}`)} disabled>
                           <Badge className="mr-2">Permissões</Badge> Definir
                         </DropdownMenuItem>)}
                         {temPermissao('usuarios','candelete') && (<DropdownMenuItem onClick={() => handleDelete(user.userid)}

@@ -237,7 +237,7 @@ const EditLicencaPublicidade = () => {
                 <Input
                   id="licencaNumero"
                   value={licencaNumero}
-                  onChange={(e) => setLicencaNumero(e.target.value)}
+                  onChange={(e) => setLicencaNumero(e.target.value.toUpperCase())}
                 />
               </div>
               <div className="space-y-2">

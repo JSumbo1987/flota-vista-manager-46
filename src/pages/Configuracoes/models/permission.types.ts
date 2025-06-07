@@ -1,7 +1,7 @@
 
 export interface MenuPermission {
   id: string;
-  nomeMenu: string;
+  nomemenu: string;
   canInsert: boolean;
   canEdit: boolean;
   canDelete: boolean;

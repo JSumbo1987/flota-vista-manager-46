@@ -24,6 +24,9 @@ const DocumentosViatura = () => {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [documentoSelecionado, setDocumentoSelecionado] = useState(null);
+  const [dataEmissao, setDataEmissao] = useState("");
+  const [dataValidade, setDataValidade] = useState("");
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchViatura = async () => {
@@ -47,12 +50,42 @@ const DocumentosViatura = () => {
       .select("*")
       .eq("viaturaid", viaturaId);
 
-    if (!error) setDocumentos(data);
+      if (!error){
+         setDocumentos(data);
+         // Gerar a URL privada e com token para o documento (se houver)
+         if (data[0].documento) {
+          fetchSignedUrl(data[0].documento);
+        }
+      }
+      
+  };
+
+  const fetchSignedUrl = async (path: string) => {
+    if (!path) return;
+    const { data, error } = await supabase.storage
+    .from('documentos')
+      .createSignedUrl(path, 60);
+      
+    if (error) {
+      console.error(error);
+    } else {
+      setSignedUrl(data?.signedUrl ?? null);
+    }
   };
 
   const handleUpload = async () => {
-    if (!tipoDocumento || !arquivo) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
+    if (!tipoDocumento) {
+      toast({ title: "Selecione o tipo de documento.", variant: "destructive" });
+      return;
+    }
+
+    if (!arquivo) {
+      toast({ title: "Selecione um arquivo para enviar.", variant: "destructive" });
+      return;
+    }
+
+    if (tipoDocumento === "Guia Provisória" && (!dataEmissao || !dataValidade)) {
+      toast({title: "Informe a data de emissão e validade para Guia Provisória.", variant:"destructive"});
       return;
     }
 
@@ -70,6 +103,8 @@ const DocumentosViatura = () => {
       viaturaid: viaturaId,
       tipodocumento: tipoDocumento,
       documento: filePath,
+      dataemissao: dataEmissao,
+      datavalidade: dataValidade
     });
 
     if (!insertError) {
@@ -170,7 +205,7 @@ const DocumentosViatura = () => {
                 <TableRow key={doc.id}>
                   <TableCell>{doc.tipodocumento}</TableCell>
                   <TableCell>
-                    <a href={`https://<your-bucket-url>/storage/v1/object/public/viaturas/${doc.documento}`}
+                    <a href={signedUrl}
                       target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                       Visualizar</a>
                   </TableCell>
@@ -207,13 +242,50 @@ const DocumentosViatura = () => {
                 <SelectItem value="Guia Provisória">Guia Provisória</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Campos de Data: só visíveis se tipo for Guia Provisória */}
+            {tipoDocumento === "Guia Provisória" && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Data de Emissão</label>
+                <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
+
+                <label className="block text-sm font-medium">Data de Validade</label>
+                <Input type="date" value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} />
+              </div>
+            )}
+
             <Input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setArquivo(e.target.files?.[0] || null)} />
+
             <Button onClick={handleUpload}>
               <FolderArchive className="mr-2 h-4 w-4" /> Enviar
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/*<Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Inserir Documento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select value={tipoDocumento} onValueChange={setTipoDocumento}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo de documento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Título de Propriedade">Título de Propriedade</SelectItem>
+                <SelectItem value="Livrete">Livrete</SelectItem>
+                <SelectItem value="Guia Provisória">Guia Provisória</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setArquivo(e.target.files?.[0] || null)} />
+            <Button onClick={handleUpload}>
+              <FolderArchive className="mr-2 h-4 w-4" /> Enviar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>*/}
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>

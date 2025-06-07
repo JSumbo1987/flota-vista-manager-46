@@ -100,7 +100,7 @@ const PermissionSelector = ({
         <Button 
           variant={selectedPermissionType === "users" ? "default" : "outline"} 
           onClick={() => setSelectedPermissionType("users")}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2" disabled
         >
           <User className="h-4 w-4" />
           <span>Usuários</span>
@@ -121,7 +121,7 @@ const PermissionSelector = ({
         </Label>
         
         {selectedPermissionType === "users" ? (
-          <Select value={selectedUser} onValueChange={setSelectedUser}>
+          <Select value={selectedUser} onValueChange={setSelectedUser} disabled>
             <SelectTrigger id="user-select">
               <SelectValue placeholder="Selecione um usuário" />
             </SelectTrigger>

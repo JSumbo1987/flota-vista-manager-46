@@ -198,7 +198,7 @@ console.log(data);
               <InputGroup label="Marca*" value={viaturaMarca} onChange={setMarca} placeholder="Ex: Toyota" numeroMaximo={20}/>
               <div className="grid grid-rows-1 md:grid-cols-2 gap-4">
                 <div className="col-span-2 flex gap-4">
-                  <InputGroup label="Modelo*" value={viaturaModelo} onChange={setModelo} placeholder="Ex: Corolla" numeroMaximo={15}/>
+                  <InputGroup label="Modelo*" value={viaturaModelo} onChange={setModelo} placeholder="Ex: Corolla" numeroMaximo={20}/>
                   <InputGroup label="Cor*" value={viaturaCor} onChange={setCor} placeholder="Ex: Prata" numeroMaximo={10}/>
                 </div>
               
