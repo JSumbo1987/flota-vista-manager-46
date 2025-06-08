@@ -38,11 +38,13 @@ import { usePermissao } from "@/hooks/usePermissao";
 import { gerarHashSenha } from "@/hooks/GerarHashSenha";
 import Pagination from "@/components/paginacao/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useFlotaApi } from '../../hooks/useFlotaApi';
+import PerfilUsuario from "./PerfilUsuario";
 
 const UsuariosList = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const { resetarPassword, loading, error } = useFlotaApi();
   const [usuarios, setUsuarios] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -171,6 +173,9 @@ const UsuariosList = () => {
       if (error) throw error;
 
       // Simulação de envio de e-mail
+      resetarPassword(user.useremail,user.usernome,novaSenha).then((res) => {
+        console.log('Reset de senha enviado:', res);
+      });
       console.log(`Nova senha do usuário ${user.useremail}: ${novaSenha}`);
 
       toast({
