@@ -3,16 +3,24 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, User, Building, Star, UserCog, ShieldCheck, Calendar } from "lucide-react";
+import { Mail, Phone, User, Building, Star, UserCog, ShieldCheck, Calendar, Key } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { gerarHashSenha } from "@/hooks/GerarHashSenha";
+import bcrypt from "bcryptjs";
 
 const PerfilUsuario = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const [perfil, setPerfil] = useState<PerfilUsuarioData>({});
   const [loading, setLoading] = useState(true);
+  const [showChangePass, setShowChangePass] = useState(false);
+  const [PasswordAntiga, setPasswordAntiga] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -87,6 +95,58 @@ const PerfilUsuario = () => {
     return null;
   };
 
+  const openChangePass = () => {
+    setShowChangePass(true);
+    setPasswordAntiga("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+  
+  const handleChangePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A nova senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "As senhas não coincidem.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    try {
+      setChangingPassword(true);
+
+      const senhaHash = await gerarHashSenha(newPassword);
+      const { data: updateData, error: updateError } = await supabase.from("tblusuarios")
+        .update({ userpassword: senhaHash })
+        .eq("useremail", perfil.useremail).select(); // Adicione isso;
+  
+      if (updateError || !updateData) {
+        throw new Error("Não foi possível alterar a senha.");
+      }
+  
+      toast({ title: "Sucesso", description: "Senha alterada com sucesso!" });
+      setShowChangePass(false);
+    } catch (error) {
+      console.error("Erro ao alterar senha:", error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };      
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[70vh]">
@@ -137,6 +197,11 @@ const PerfilUsuario = () => {
                 <div className="flex items-center space-x-3 bg-muted/50 p-2 rounded-md">
                   <Star className="h-4 w-4 text-muted-foreground" />
                   <span>{perfil?.tblgrupousuarios?.gruponame || "Grupo não disponível"}</span>
+                </div>
+
+                <div className="flex items-center space-x-3 bg-muted/50 p-2 rounded-md">
+                  <Key className="h-4 w-4 text-muted-foreground" /> 
+                  <Badge className="mr-2" onClick={() => openChangePass()}>Alterar senha de acesso</Badge>
                 </div>
               </div>
             </CardContent>
@@ -195,6 +260,50 @@ const PerfilUsuario = () => {
               )}
             </CardContent>
           </Card>
+          {showChangePass && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+              <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 space-y-4">
+                <h2 className="text-lg font-semibold">Alterar Senha</h2>
+
+                <div className="space-y-2">
+                  <label className="text-sm">Nova Senha</label>
+                  <input
+                    type="password"
+                    className="w-full border rounded p-2"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm">Confirmar Nova Senha</label>
+                  <input
+                    type="password"
+                    className="w-full border rounded p-2"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    className="px-4 py-2 rounded bg-muted"
+                    onClick={() => setShowChangePass(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="px-4 py-2 rounded bg-primary text-white"
+                    onClick={handleChangePassword}
+                    disabled={changingPassword}
+                  >
+                    {changingPassword ? "Salvando..." : "Salvar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

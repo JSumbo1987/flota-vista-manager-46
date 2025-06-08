@@ -198,14 +198,13 @@ const Dashboard = () => {
       // Formatos string para Supabase
       const dataInicio = formatDateLocal(hojes);
       const dataFim = formatDateLocal(trintaDiasDepois);
-      console.log("Data de 30 dias: ", dataFim);// Estamos a verificar os 30dias depois e os erros permanecem
-      //parei por aqui e deve-se verificar as datas no backend e na base de dados continua a retornar os 11 registos.
 
       const { data: licencasData, error: licencasError } = await supabase
         .from("tbllicencatransportacao")
         .select("*")
         .gte("datavencimento", dataInicio)
         .lte("datavencimento", dataFim)
+        .eq("licencastatus", "a_vencer")
         .order("datavencimento", { ascending: true });
 
       console.log("Total de licenças de Transporte encontradas:", licencasData?.length || 0);
