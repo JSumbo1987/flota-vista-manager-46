@@ -179,7 +179,7 @@ const EditUsuario = () => {
   };
 
   const handleSwitchChangeNotificacao = (checked: boolean) => {
-    setForm((prev) => ({ ...prev, usuariorecebernotificacao: checked }));
+    setForm((prev) => ({ ...prev, userreceberemail: checked }));
   };
 
   if (isLoading) {

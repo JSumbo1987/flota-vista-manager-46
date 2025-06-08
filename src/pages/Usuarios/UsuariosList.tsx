@@ -39,7 +39,6 @@ import { gerarHashSenha } from "@/hooks/GerarHashSenha";
 import Pagination from "@/components/paginacao/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFlotaApi } from '../../hooks/useFlotaApi';
-import PerfilUsuario from "./PerfilUsuario";
 
 const UsuariosList = () => {
   const navigate = useNavigate();
@@ -176,7 +175,6 @@ const UsuariosList = () => {
       resetarPassword(user.useremail,user.usernome,novaSenha).then((res) => {
         console.log('Reset de senha enviado:', res);
       });
-      console.log(`Nova senha do usuário ${user.useremail}: ${novaSenha}`);
 
       toast({
         title: "Senha resetada com sucesso",

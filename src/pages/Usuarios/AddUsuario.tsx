@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { gerarHashSenha } from "@/hooks/GerarHashSenha";
 import { useSenhaValidator } from "@/hooks/useSenhaValidator";
+import { useFlotaApi } from '../../hooks/useFlotaApi';
 
 interface TipoUsuario {
   tipoid: string;
@@ -35,7 +36,7 @@ const AddUsuario = () => {
     issuperusuario: false,
     userreceberemail: false,
   });
-
+  const { sendConfirmation, loading, error } = useFlotaApi();
   const [tiposUsuario, setTiposUsuario] = useState<TipoUsuario[]>([]);
   const [gruposUsuario, setGruposUsuario] = useState<GrupoUsuario[]>([]);
   const [superUsuarioExiste, setSuperUsuarioExiste] = useState(false);
@@ -92,33 +93,33 @@ const AddUsuario = () => {
   };
 
   const handleSwitchChangeNotificacao = (checked: boolean) => {
-    setForm((prev) => ({ ...prev, usuariorecebernotificacao: checked }));
+    setForm((prev) => ({ ...prev, userreceberemail: checked }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
+  
     try {
       const email = form.useremail.trim().toLowerCase();
-
+  
       const [usuarioResponse, funcionarioResponse] = await Promise.all([
         supabase.from("tblusuarios").select("*", { count: "exact", head: true }).eq("useremail", email),
         supabase.from("tblfuncionarios").select("*", { count: "exact", head: true }).eq("funcionarioemail", email),
       ]);
-
+  
       if ((usuarioResponse.count || 0) > 0 || (funcionarioResponse.count || 0) > 0) {
         toast({ 
           title: "Ops", 
           description: "O e-mail informado já existe cadastrado no sistema!", 
           variant: "destructive" 
         });
-        setIsSubmitting(false);
         return;
       }
-
+  
       const senhaHash = await gerarHashSenha(form.userpassword);
-      const { error } = await supabase.from("tblusuarios").insert({
+      let NovoID;
+      const { data, error } = await supabase.from("tblusuarios").insert({
         usernome: form.usernome,
         useremail: form.useremail,
         userpassword: senhaHash.trim(),
@@ -129,13 +130,28 @@ const AddUsuario = () => {
         isfastlogin: 0,
         issuperusuario: form.issuperusuario,
         userreceberemail: form.userreceberemail
-      });
-
+      }, { returning: "representation" });
+  
       if (error) throw error;
-
+  
+      if (!data) {
+        const { data: usuarios } = await supabase
+          .from("tblusuarios")
+          .select("userid")
+          .eq("useremail", form.useremail)
+          .order("userid", { ascending: false })
+          .limit(1);
+      
+        if (!usuarios || usuarios.length === 0) throw new Error("Usuário inserido, mas ID não encontrado.");
+      
+        const novoUsuario = usuarios[0];
+        NovoID = novoUsuario.userid;
+      }
       toast({ title: "Usuário cadastrado com sucesso!" });
-      //Enviar email para confirmar o e-mail do Usuário.
-
+  
+      // Enviar e-mail de confirmação
+      await sendConfirmation(form.useremail, NovoID);
+  
       navigate("/usuarios");
     } catch (err) {
       console.error(err);
@@ -147,7 +163,7 @@ const AddUsuario = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  };  
 
   return (
     <div className="space-y-4">

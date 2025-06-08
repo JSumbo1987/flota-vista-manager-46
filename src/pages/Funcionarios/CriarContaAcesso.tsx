@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { gerarHashSenha } from "@/hooks/GerarHashSenha";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useFlotaApi } from '../../hooks/useFlotaApi';
 
 interface FuncionarioParcial {
   funcionarionome: string;
@@ -31,7 +32,7 @@ const CriarContaAcesso = () => {
   const { funcionarioid } = useParams<{ funcionarioid: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const { sendConfirmation, loading, error } = useFlotaApi();
   const [funcionario, setFuncionario] = useState<FuncionarioParcial | null>(null);
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
@@ -119,8 +120,8 @@ const CriarContaAcesso = () => {
 
     try {
       const senhaHash = await gerarHashSenha(senha);
-
-      const { error } = await supabase.from("tblusuarios").insert({
+      let NovoID;
+      const { data, error } = await supabase.from("tblusuarios").insert({
         usernome: funcionario.funcionarionome,
         useremail: funcionario.funcionarioemail,
         userpassword: senhaHash,
@@ -132,11 +133,27 @@ const CriarContaAcesso = () => {
       });
 
       if (error) throw error;
+      if (!data) {
+        const { data: usuarios } = await supabase
+          .from("tblusuarios")
+          .select("userid")
+          .eq("useremail", funcionario.funcionarioemail)
+          .order("userid", { ascending: false })
+          .limit(1);
+      
+        if (!usuarios || usuarios.length === 0) throw new Error("Usuário inserido, mas ID não encontrado.");
+      
+        const novoUsuario = usuarios[0];
+        NovoID = novoUsuario.userid;
+      };
 
       toast({
         title: "Conta criada",
         description: "Conta de acesso criada com sucesso.",
       });
+
+      // Enviar e-mail de confirmação
+      await sendConfirmation(funcionario.funcionarioemail, NovoID);
 
       navigate("/funcionarios");
     } catch (error: any) {
